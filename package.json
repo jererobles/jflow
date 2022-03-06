@@ -1,0 +1,14 @@
+{
+  "name": "jflow",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.19.2",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "fs": "^0.0.1-security",
+    "mathjs": "^10.3.0",
+    "util": "^0.12.4"
+  }
+}
