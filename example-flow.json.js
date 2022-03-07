@@ -7,8 +7,9 @@ const example = {
             string: "string",
         },
     },
-    conditions: [
-        // conditional statements to be evaluated
+    forks: [
+        // a fork is a conditional statements to be evaluated
+        // a block may have multiple forks
         // statements are expressed as a string from the `illogical` library
         {
             id: "string",
@@ -59,7 +60,7 @@ const example = {
     blocks: [
         // collection of one or more expressions
         // one block can be used multiple times
-        // a block output can be used as input for another block or a condition
+        // a block output can be used as input for another block or a fork
         {
             id: "string",
             name: "string",
