@@ -8,14 +8,20 @@ const example = {
         },
     },
     conditions: [
+        // conditional statements to be evaluated
+        // statements are expressed as a string from the `illogical` library
         {
             id: "string",
             name: "string",
-            type: "string",
+            type: "string", // "simple" or "mapped"
             block: "string",
-            value: "string",
-            operator: "string",
-            path: "string", // a path has the form "<block_id>.<block_id>..."
+            statement: "string",
+            mapping: {
+                // mapping of blocks to be invoked after the statement is evaluated
+                true: "string", // or null
+                false: "string", // or null
+                string: "string", // or null
+            },
         },
     ],
     expressions: [
@@ -53,6 +59,7 @@ const example = {
     blocks: [
         // collection of one or more expressions
         // one block can be used multiple times
+        // a block output can be used as input for another block or a condition
         {
             id: "string",
             name: "string",
