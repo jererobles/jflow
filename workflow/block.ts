@@ -41,6 +41,7 @@ class WorkflowStep {
     this.updatedAt = updatedAt;
     this.deletedAt = deletedAt;
   }
+
 }
 
 class WorkflowStepFunction {
