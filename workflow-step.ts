@@ -4,6 +4,21 @@
 // Workflow step function types: Math, Data, and Control.
 import math from 'mathjs';
 
+/**
+ * There are 3 WorkflowStepFunctionTypes: Math, Data, and Control.
+ * Math: A workflow step function that performs some mathematical computation, such as:
+ *  - (pi * e)^x
+ *  - sin(x)
+ *  - max(x, y)
+ * Data: A workflow step function that reads and writes data, such as:
+ *  - Reading and writing a file or a database.
+ *  - Reading and writing a message queue.
+ *  - Requesting and receiving a web service.
+ * Control: A workflow step function that performs some control operation, such as:
+ *  - Wait for a certain amount of time.
+ *  - Execute a workflow step.
+ *  - End the workflow.
+ */
 type WorkflowStepFunctionType = 'Math' | 'Data' | 'Control';
 type WorkflowStepFunctionResultType = 'Number' | 'String' | 'Boolean' | 'Array' | 'Object';
 
