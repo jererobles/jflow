@@ -1,40 +1,26 @@
 // Google Workflows clone
-// Implement Workflow and WorkflowStep classes and export them
+// Implement Workflow and WorkflowBlock classes and export them
 // This will be the foundational buiding blocks for the workflow system.
 // The workflow definition is stored in a JSON file.
 
-class Workflow {
+import { WorkflowExpression, WorkflowExpressionParameter as WorkflowExpressionParameter, WorkflowExpressionResult as WorkflowExpressionResult } from "./expression";
+
+export type WorkflowBlockResultType = 'Number' | 'String' | 'Boolean' | 'Array' | 'Object';
+
+export class WorkflowBlock {
   public id: string;
   public name: string;
-  public steps: WorkflowStep[];
+  public expressions: WorkflowExpression[];
+  public parameters: WorkflowBlockParameter[];
+  public results: WorkflowExpressionResult[];
   public createdAt: Date;
   public updatedAt: Date;
   public deletedAt: Date;
 
-  constructor(id: string, name: string, steps: WorkflowStep[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
+  constructor(id: string, name: string, expressions: WorkflowExpression[], parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
     this.id = id;
     this.name = name;
-    this.steps = steps;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-    this.deletedAt = deletedAt;
-  }
-}
-
-class WorkflowStep {
-  public id: string;
-  public name: string;
-  public functionObj: WorkflowStepFunction;
-  public parameters: WorkflowStepFunctionParameter[];
-  public results: WorkflowStepFunctionResult[];
-  public createdAt: Date;
-  public updatedAt: Date;
-  public deletedAt: Date;
-
-  constructor(id: string, name: string, functionObj: WorkflowStepFunction, parameters: WorkflowStepFunctionParameter[], results: WorkflowStepFunctionResult[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
-    this.id = id;
-    this.name = name;
-    this.functionObj = functionObj;
+    this.expressions = expressions;
     this.parameters = parameters;
     this.results = results;
     this.createdAt = createdAt;
@@ -44,28 +30,36 @@ class WorkflowStep {
 
 }
 
-class WorkflowStepFunction {
-  public id: string;
-  public name: string;
-  public type: WorkflowStepFunctionType;
-  public parameters: WorkflowStepFunctionParameter[];
-  public results: WorkflowStepFunctionResult[];
-  public createdAt: Date;
-  public updatedAt: Date;
-  public deletedAt: Date;
-
-  constructor(id: string, name: string, type: WorkflowStepFunctionType, parameters: WorkflowStepFunctionParameter[], results: WorkflowStepFunctionResult[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
-    this.parameters = parameters;
-    this.results = results;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-    this.deletedAt = deletedAt;
+export class WorkflowBlockParameter {
+    public id: string;
+    public name: string;
+    public type: string;
+    public defaultValue: string;
+    public description: string;
+  
+    constructor(id: string, name: string, type: string, defaultValue: string, description: string) {
+      this.id = id;
+      this.name = name;
+      this.type = type;
+      this.defaultValue = defaultValue;
+      this.description = description;
+    }
   }
-}
 
-type WorkflowStepFunctionType = string;
 
-export { Workflow, WorkflowStep, WorkflowStepFunction, WorkflowStepFunctionParameter, WorkflowStepFunctionResult, WorkflowStepFunctionType, WorkflowStepFunctionParameterType, WorkflowStepFunctionResult };
+
+export class WorkflowBlockResult {
+    public id: string;
+    public name: string;
+    public type: WorkflowBlockResultType;
+    public value: string;
+  
+    constructor(id: string, name: string, type: WorkflowBlockResultType, value: string) {
+      this.id = id;
+      this.name = name;
+      this.type = type;
+      this.value = value;
+    }
+  }
+  
+  
