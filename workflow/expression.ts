@@ -20,89 +20,113 @@ import math = require("mathjs")
  *  - End the workflow.
  */
 
+// TODO: these could be their own classes and enums could instead be used for subtypes such as "log to console"
 export enum WorkflowExpressionType {
-  Math = 'Math',
-  Data = 'Data',
-  Control = 'Control'
+    Math = 'Math',
+    Data = 'Data',
+    Control = 'Control'
 }
 
 export enum WorkflowExpressionResultType {
-  Number = 'Number',
-  String = 'String',
-  Boolean = 'Boolean',
-  Array = 'Array',
-  Object = 'Object',
+    Number = 'Number',
+    String = 'String',
+    Boolean = 'Boolean',
+    Array = 'Array',
+    Object = 'Object',
 }
 
 export class WorkflowExpressionParameter {
-  public id: string;
-  public name: string;
-  public type: string;
-  public defaultValue: string;
-  public description: string;
+    public id: string;
+    public name: string;
+    public type: string;
+    public defaultValue: any;
+    public value: any;
+    public description: string;
 
-  constructor(id: string, name: string, type: string, defaultValue: string, description: string) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
-    this.defaultValue = defaultValue;
-    this.description = description;
-  }
+    constructor(id: string, name: string, type: string, defaultValue: any, value: any, description: string) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.defaultValue = defaultValue;
+        this.value = value;
+        this.description = description;
+    }
 }
 
 export class WorkflowExpression {
-  public id: string;
-  public name: string;
-  public type: WorkflowExpressionType;
-  public parameters: WorkflowExpressionParameter[];
-  public results: WorkflowExpressionResult[];
+    public id: string;
+    public name: string;
+    public type: WorkflowExpressionType;
+    public parameters: any;
+    public results: WorkflowExpressionResult[];
 
-  constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
-    this.parameters = parameters;
-    this.results = results;
-  }
+    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.results = results;
+        this.parameters = {};
+        for (let param of parameters) {
+            this.parameters[param.name] = param.value || param.defaultValue;
+        }
+    }
 
-  public async compute(parameters?: any): Promise<WorkflowExpressionResult> {
-    return new WorkflowExpressionResult('', '', WorkflowExpressionResultType.Number, '0');
-  }
+    public async compute(): Promise<WorkflowExpressionResult> {
+        // FIXME: placeholder
+        return new WorkflowExpressionResult('', '', WorkflowExpressionResultType.Number, '0');
+    }
 }
 
 // WorkflowBlockExpressionMath is a workflow block expression that performs a mathematical operation.
 // The mathematical operation can be any operation supported by the imported mathjs library.
 // The class takes a `mathExpression` parameter that specifies the mathematical operation to perform.
 export class WorkflowExpressionMath extends WorkflowExpression {
-  public mathExpression: string;
 
-  constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[], mathExpression: string) {
-    super(id, name, type, parameters, results);
-    this.mathExpression = mathExpression;
-  }
+    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+        super(id, name, type, parameters, results);
+    }
 
-  /**
-   * 
-   * @returns The result of the mathematical operation wrapped in a WorkflowExpressionResult.
-   */
-  public async compute(): Promise<WorkflowExpressionResult> {
-    const result = math.evaluate(this.mathExpression);
-    return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
-  }
+    /**
+     * 
+     * @returns The result of the mathematical operation wrapped in a WorkflowExpressionResult.
+     */
+    public async compute(): Promise<WorkflowExpressionResult> {
+        // FIXME: this.parameters.expression is untyped
+        const result = math.evaluate(this.parameters.expression);
+        return new WorkflowExpressionResult("result", "result", WorkflowExpressionResultType.String, result.toString());
+    }
+}
+
+export class WorkflowExpressionData extends WorkflowExpression {
+
+    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+        super(id, name, type, parameters, results);
+    }
+
+    /**
+     * 
+     * @returns The result of the mathematical operation wrapped in a WorkflowExpressionResult.
+     */
+    public async compute(): Promise<WorkflowExpressionResult> {
+        // FIXME: this.parameters.data is untyped
+        const result = this.parameters.data;
+        console.log(result);
+        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+    }
 }
 
 
 export class WorkflowExpressionResult {
-  public id: string;
-  public name: string;
-  public type: WorkflowExpressionResultType;
-  public value: string;
+    public id: string;
+    public name: string;
+    public type: WorkflowExpressionResultType;
+    public value: string;
 
-  constructor(id: string, name: string, type: WorkflowExpressionResultType, value: string) {
-    this.id = id;
-    this.name = name;
-    this.type = type;
-    this.value = value;
-  }
+    constructor(id: string, name: string, type: WorkflowExpressionResultType, value: string) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.value = value;
+    }
 }
 
