@@ -1,3 +1,12 @@
+# Run
+
+```bash
+git clone git@github.com:jererobles/jflow.git
+cd jflow
+yarn install
+npx ts-node index.ts
+```
+
 # To Do
 
 -   [x] define execution flow
