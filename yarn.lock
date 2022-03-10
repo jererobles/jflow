@@ -9,6 +9,11 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
+"@briza/illogical@^1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@briza/illogical/-/illogical-1.5.2.tgz#2b92baa24b5319d0bfd72fa7e3d96fd379bd205b"
+  integrity sha512-GQ4FfVmhAap3s65za8Xoadksi+Dlx4tceI6XeJO76SVLcx1RE1DYA6VNB58Y6Ww/BKrb7Xjt1y3qdkFfqA8yxw==
+
 "@types/node@^17.0.21":
   version "17.0.21"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.21.tgz#864b987c0c68d07b4345845c3e63b75edd143644"

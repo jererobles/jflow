@@ -65,7 +65,7 @@ const example = {
             id: "string",
             name: "string",
             parentBlock: "string", // or null for root blocks
-            expressions: ["string"],
+            expressions: ["string"], // expressions ids
             parameters: [
                 {
                     id: "string",

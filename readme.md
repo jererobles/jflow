@@ -25,3 +25,4 @@ npx ts-node index.ts
 -   [ ] build basic UI
 -   [ ] implement basic block types
 -   [ ] first manual e2e test
+-   [ ] fixme: having both enums and classes for types is silly
