@@ -17,7 +17,7 @@ export class WorkflowRunner {
     }
 
     public async run(): Promise<WorkflowResult> {
-        const results = await this.executeBlocks(this.workflow.blocks);
+        const results = await this.executeBlocks(this.workflow.blocks.filter(b => b.parentBlocks.includes("workflow")));
         return new WorkflowResult(this.workflow.id, this.workflow.name, results, new Date(), new Date(), new Date());
     }
 
@@ -33,12 +33,13 @@ export class WorkflowRunner {
     private async executeBlock(block: WorkflowBlock): Promise<WorkflowBlockResult> {
         // FIXME: there is some recursion issue so killing the workflow if it gets too deep
         this.depth++;
+        console.log(`Executing block ${block.id}, current depth: ${this.depth}`);
         if (this.depth > 10) {
-            console.log(`${this.depth}`);
             throw '';
         }
         const expressionsResults = await this.evaluateExpressions(block.expressions);
-        const blockResults = await this.evaluateForkOrNextBlock(block, expressionsResults);
+        await this.executeBlocks(this.findChildBlocks(block));
+        await this.evaluateFork(block, expressionsResults);
         this.depth--;
         return new WorkflowBlockResult("", "", "String", "ok");
     }
@@ -52,10 +53,11 @@ export class WorkflowRunner {
         return expressionResults;
     }
 
-    private async evaluateForkOrNextBlock(block: WorkflowBlock, results: WorkflowExpressionResult[]): Promise<WorkflowBlockResult[] | undefined> {
+    private async evaluateFork(block: WorkflowBlock, results: WorkflowExpressionResult[]): Promise<WorkflowBlockResult[] | undefined> {
         // TODO: do something with results, possibly log them and execute the next step recursively
         // execute the next step, which could be a fork or a block
         if (block.fork) {
+            console.log(`Evaluating fork ${block.fork.id}`);
             // Evaluate the fork
             // First, flatten the results into a single object with all of the results.name and results.value properties
             const resultsObject: { [key: string]: any } = {};
@@ -68,16 +70,17 @@ export class WorkflowRunner {
                 // forkResult is an array of block ids
                 // Fork matches one or more blocks, filter through workflow blocks and execute them
                 const matchingBlocks = this.workflow.blocks.filter(b => forkResult.includes(b.id));
+                console.log(`Fork matched ${matchingBlocks.length} blocks`);
                 return this.executeBlocks(matchingBlocks);
             }
-        } else {
-            // Find if there is a linked block to execute
-            const linkedBlock = this.workflow.blocks.find(b => b.id === block.id);
-            if (linkedBlock) {
-                // Execute the linked block
-                return this.executeBlocks([linkedBlock]);
-            }
         }
+    }
+
+    private findChildBlocks(block: WorkflowBlock): WorkflowBlock[] {
+        // Filter through workflow blocks and find all blocks that are children of this block
+        const childBlocks = this.workflow.blocks.filter(b => b.parentBlocks.includes(block.id));
+        console.log(`Found ${childBlocks.length} child blocks`);
+        return childBlocks;
     }
 
 
