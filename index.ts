@@ -11,8 +11,8 @@ const workflowDefinition = {
     environment: {},
     blocks: [
         {
-            id: "main",
-            name: "Main",
+            id: "multiply",
+            name: "Multiply",
             expressions: [
                 {
                     id: "",
@@ -24,7 +24,6 @@ const workflowDefinition = {
                             value: "2 * 2",
                         }
                     ],
-                    results: []
                 }
             ],
             forks: [
@@ -45,7 +44,6 @@ const workflowDefinition = {
                 "workflow"
             ],
             parameters: [],
-            results: [],
             createdAt: date,
             updatedAt: date,
             deletedAt: date
@@ -64,13 +62,11 @@ const workflowDefinition = {
                             value: "result is four"
                         }
                     ],
-                    results: []
                 }
             ],
             forks: [],
             parentBlocks: [],
             parameters: [],
-            results: [],
             createdAt: date,
             updatedAt: date,
             deletedAt: date
@@ -89,13 +85,11 @@ const workflowDefinition = {
                             value: "result is not four"
                         }
                     ],
-                    results: []
                 }
             ],
             forks: [],
             parentBlocks: [],
             parameters: [],
-            results: [],
             createdAt: date,
             updatedAt: date,
             deletedAt: date
@@ -108,8 +102,7 @@ const workflowDefinition = {
 
 const wf = WorkflowParser.parse(workflowDefinition);
 
-
 const runner = new WorkflowRunner(wf);
 runner.run().then(result => {
-    console.log(result);
+    console.log(JSON.stringify(result, null, 2));
 });

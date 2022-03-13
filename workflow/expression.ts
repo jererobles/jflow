@@ -57,12 +57,11 @@ export class WorkflowExpression {
     public id: string;
     public name: string;
     public parameters: any;
-    public results: WorkflowExpressionResult[];
+    public results: WorkflowExpressionResult[] = [];
 
-    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
         this.id = id;
         this.name = name;
-        this.results = results;
         this.parameters = {};
         for (let param of parameters) {
             this.parameters[param.name] = param.value || param.defaultValue;
@@ -80,20 +79,16 @@ export class WorkflowExpression {
         for (let param of obj.parameters) {
             parameters.push(new WorkflowExpressionParameter(param.id, param.name, param.type, param.defaultValue, param.value, param.description));
         }
-        let results: WorkflowExpressionResult[] = [];
-        for (let result of obj.results) {
-            results.push(new WorkflowExpressionResult(result.id, result.name, result.type, result.description));
-        }
 
         // use WorkflowExpressionType to instantiate the correct type
         if (obj.type === WorkflowExpressionType.Math) {
-            return new WorkflowExpressionMath(obj.id, obj.name, parameters, results);
+            return new WorkflowExpressionMath(obj.id, obj.name, parameters);
         }
         else if (obj.type === WorkflowExpressionType.Data) {
-            return new WorkflowExpressionData(obj.id, obj.name, parameters, results);
+            return new WorkflowExpressionData(obj.id, obj.name, parameters);
         }
         // else if (obj.type === WorkflowExpressionType.Control) {
-        // return new WorkflowExpressionControl(obj.id, obj.name, parameters, results);
+        // return new WorkflowExpressionControl(obj.id, obj.name, parameters);
         // }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
@@ -105,8 +100,8 @@ export class WorkflowExpression {
 // The class takes a `mathExpression` parameter that specifies the mathematical operation to perform.
 export class WorkflowExpressionMath extends WorkflowExpression {
 
-    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
-        super(id, name, parameters, results);
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
+        super(id, name, parameters);
     }
 
     /**
@@ -122,8 +117,8 @@ export class WorkflowExpressionMath extends WorkflowExpression {
 
 export class WorkflowExpressionData extends WorkflowExpression {
 
-    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
-        super(id, name, parameters, results);
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
+        super(id, name, parameters);
     }
 
     /**

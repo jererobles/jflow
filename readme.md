@@ -19,6 +19,11 @@ npx ts-node index.ts
     5. (3) and (4) are repeated until all blocks are executed
     6. workflow end
 -   [x] define meta language
+-   [ ] define states
+    1. pending
+    2. running
+    3. completed (success, skipped, failed)
+    4. cancelled
 -   [x] write models
 -   [ ] write parser
 -   [x] write runner
