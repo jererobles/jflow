@@ -8,6 +8,7 @@
 import Engine from '@briza/illogical'
 import { Evaluable } from '@briza/illogical/types/common/evaluable';
 import { ExpressionInput } from '@briza/illogical/types/parser';
+import { WorkflowBlock } from './block';
 
 
 export type WorkflowForkType = 'simple' | 'mapped';
@@ -15,61 +16,27 @@ export type WorkflowForkType = 'simple' | 'mapped';
 export class WorkflowFork {
     public id: string;
     public name: string;
-    public type: WorkflowForkType;
     public input: any;
-    public statement: ExpressionInput;
-    public mapping: any;
-    private evaluable: Evaluable;
+    public branches: WorkflowForkBranch[];
 
     /**
      * 
      * @param id 
      * @param name 
-     * @param type 
-     * @param statement 
-     * @param mapping 
+     * @param branches
      */
-    constructor(id: string, name: string, type: WorkflowForkType, statement: ExpressionInput, mapping: any) {
+    constructor(id: string, name: string, branches: WorkflowForkBranch[]) {
         this.id = id;
         this.name = name;
-        this.type = type;
-        this.statement = statement;
-        this.mapping = mapping;
+        this.branches = branches;
 
         const engine = new Engine();
-        this.evaluable = engine.parse(statement);
-    }
-
-    /**
-     * Evaluate the fork statement
-     * @param input object containing the combined results of all the expressions in the input block
-     * @returns {string} The workflow step to execute
-     */
-    public evaluate(input: any): string[] {
-        if (this.type === 'simple') {
-            return this.evaluateSimple(input);
-        } else {
-            return this.evaluateMapped(input);
+        // for each branch, create an evaluable statement and add it to the branch object
+        for (const branch of this.branches) {
+            branch.evaluable = engine.parse(branch.statement);
         }
     }
 
-    /**
-     * Evaluate a simple fork statement
-     * For instance:
-     *  - input: { name: 'peter' }
-     *  - statement: ['==', '$name', 'peter']
-     *  - result: true
-     * @param input object containing the combined results of all the expressions in the input block
-     * @returns {string} The workflow step to execute
-     */
-    private evaluateSimple(input: any): string[] {
-        const result = this.evaluable.evaluate(input);
-        if (result === true) {
-            return [this.mapping.true];
-        } else {
-            return [this.mapping.false];
-        }
-    }
 
     /**
      * Evaluate a mapped fork statement, similar to a simple fork statement
@@ -78,24 +45,40 @@ export class WorkflowFork {
      *  - input: { name: 'peter' }
      *  - branches: [{
      *       statement: ['==', '$name', 'peter'],
-     *       block: 'block1'
+     *       resultTrueBlocks: ['block1'],
+     *       resultFalseBlocks: ['block3'],
      *    }, {
      *       statement: ['==', '$name', 'john'],
-     *       block: 'block2'
+     *       resultTrueBlocks: ['block2'],
+     *       resultFalseBlocks: ['block4'],
      *    }]
-     *  - result: 'block1'
+     *  - result: ['block1', 'block4']
      * @param input object containing the combined results of all the expressions in the input block
      * @returns {string} The workflow block to execute
      */
-    private evaluateMapped(input: any): string[] {
-        let blocks = [];
-        for (const branch of this.mapping.branches) {
-            const result = this.evaluable.evaluate(input);
-            if (result === true) {
-                blocks.push(branch.block);
+    public evaluate(input: any): string[] {
+        const results: string[] = [];
+        for (const branch of this.branches) {
+            const result = branch.evaluable.evaluate(input);
+            if (result) {
+                results.push(...branch.resultTrueBlocks);
+            } else {
+                results.push(...branch.resultFalseBlocks);
             }
         }
-        return blocks;
+        return results;
     }
 
+    public static fromObject(object: any): WorkflowFork {
+        return new WorkflowFork(object.id, object.name, object.branches);
+    }
+
+
+}
+
+export interface WorkflowForkBranch {
+    statement: ExpressionInput;
+    resultTrueBlocks: string[];
+    resultFalseBlocks: string[];
+    evaluable?: Evaluable;
 }

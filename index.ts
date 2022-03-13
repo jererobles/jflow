@@ -12,7 +12,7 @@ const wf = new Workflow("wf1", "Wf1", [
         new WorkflowExpressionMath("", "", WorkflowExpressionType.Math, [
             new WorkflowExpressionParameter("", "expression", "", "", "2 * 2", "")
         ], [])
-    ], new WorkflowFork("fork1", "Fork1", "simple",
+    ], [new WorkflowFork("fork1", "Fork1", "simple",
         [
             '==', '$result', '4'
         ],
@@ -20,7 +20,7 @@ const wf = new Workflow("wf1", "Wf1", [
             "true": "step1",
             "false": "step2"
         }
-    ), ["workflow"], [], [], date, date, date),
+    )], ["workflow"], [], [], date, date, date),
     new WorkflowBlock("step1", "Step1", [
         new WorkflowExpressionData("", "", WorkflowExpressionType.Math, [
             new WorkflowExpressionParameter("", "data", "", "", "result is four", "")

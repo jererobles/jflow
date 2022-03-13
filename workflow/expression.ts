@@ -56,14 +56,12 @@ export class WorkflowExpressionParameter {
 export class WorkflowExpression {
     public id: string;
     public name: string;
-    public type: WorkflowExpressionType;
     public parameters: any;
     public results: WorkflowExpressionResult[];
 
-    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
         this.id = id;
         this.name = name;
-        this.type = type;
         this.results = results;
         this.parameters = {};
         for (let param of parameters) {
@@ -75,6 +73,31 @@ export class WorkflowExpression {
         // FIXME: placeholder
         return new WorkflowExpressionResult('', '', WorkflowExpressionResultType.Number, '0');
     }
+
+    // create a new WorkflowExpression from a JSON object
+    public static fromObject(obj: any): WorkflowExpression {
+        let parameters: WorkflowExpressionParameter[] = [];
+        for (let param of obj.parameters) {
+            parameters.push(new WorkflowExpressionParameter(param.id, param.name, param.type, param.defaultValue, param.value, param.description));
+        }
+        let results: WorkflowExpressionResult[] = [];
+        for (let result of obj.results) {
+            results.push(new WorkflowExpressionResult(result.id, result.name, result.type, result.description));
+        }
+
+        // use WorkflowExpressionType to instantiate the correct type
+        if (obj.type === WorkflowExpressionType.Math) {
+            return new WorkflowExpressionMath(obj.id, obj.name, parameters, results);
+        }
+        else if (obj.type === WorkflowExpressionType.Data) {
+            return new WorkflowExpressionData(obj.id, obj.name, parameters, results);
+        }
+        // else if (obj.type === WorkflowExpressionType.Control) {
+        // return new WorkflowExpressionControl(obj.id, obj.name, parameters, results);
+        // }
+        throw new Error('Unknown workflow expression type: ' + obj.type);
+
+    }
 }
 
 // WorkflowBlockExpressionMath is a workflow block expression that performs a mathematical operation.
@@ -82,8 +105,8 @@ export class WorkflowExpression {
 // The class takes a `mathExpression` parameter that specifies the mathematical operation to perform.
 export class WorkflowExpressionMath extends WorkflowExpression {
 
-    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
-        super(id, name, type, parameters, results);
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+        super(id, name, parameters, results);
     }
 
     /**
@@ -99,8 +122,8 @@ export class WorkflowExpressionMath extends WorkflowExpression {
 
 export class WorkflowExpressionData extends WorkflowExpression {
 
-    constructor(id: string, name: string, type: WorkflowExpressionType, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
-        super(id, name, type, parameters, results);
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[]) {
+        super(id, name, parameters, results);
     }
 
     /**

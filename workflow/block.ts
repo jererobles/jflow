@@ -12,7 +12,7 @@ export class WorkflowBlock {
     public id: string;
     public name: string;
     public expressions: WorkflowExpression[];
-    public fork: WorkflowFork | null;
+    public forks: WorkflowFork[];
     // TODO: implement. inlineBlocks are executed first and they don't participate in the block's fork, but they can have a result that can be passed to their own fork.
     public parentBlocks: string[];
     public parameters: WorkflowBlockParameter[];
@@ -21,11 +21,11 @@ export class WorkflowBlock {
     public updatedAt: Date;
     public deletedAt: Date;
 
-    constructor(id: string, name: string, expressions: WorkflowExpression[], fork: WorkflowFork | null, parentBlocks: string[], parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
+    constructor(id: string, name: string, expressions: WorkflowExpression[], forks: WorkflowFork[] = [], parentBlocks: string[], parameters: WorkflowExpressionParameter[], results: WorkflowExpressionResult[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
         this.id = id;
         this.name = name;
         this.expressions = expressions;
-        this.fork = fork;
+        this.forks = forks;
         this.parentBlocks = parentBlocks;
         this.parameters = parameters;
         this.results = results;

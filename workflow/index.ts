@@ -7,14 +7,16 @@ import { WorkflowBlock } from "./block";
 export class Workflow {
     public id: string;
     public name: string;
+    public environment: any;
     public blocks: WorkflowBlock[];
     public createdAt: Date;
     public updatedAt: Date;
     public deletedAt: Date;
 
-    constructor(id: string, name: string, blocks: WorkflowBlock[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
+    constructor(id: string, name: string, environment: any, blocks: WorkflowBlock[], createdAt: Date, updatedAt: Date, deletedAt: Date) {
         this.id = id;
         this.name = name;
+        this.environment = environment;
         this.blocks = blocks;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
