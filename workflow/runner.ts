@@ -7,6 +7,8 @@ import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
 import { WorkflowFork } from "./fork";
 
+const log = require('simple-node-logger').createSimpleLogger();
+
 export enum BlockState {
     NotStarted,
     Running,
@@ -44,7 +46,7 @@ export class WorkflowRunner {
         if (state === BlockState.Finished && result) {
             this.onBlockFinished(block, result);
         }
-        console.log(`Block ${block.id} is now ${BlockState[state]}`);
+        log.info(`Block ${block.id} is now ${BlockState[state]}`);
     }
 
     private async executeBlocks(blocks: WorkflowBlock[]): Promise<WorkflowBlockResult[]> {
@@ -65,7 +67,7 @@ export class WorkflowRunner {
                 this.depth--;
             }).catch(err => {
                 this.setBlockState(block, BlockState.Failed);
-                console.log(`Block ${block.id} failed: ${err}`);
+                log.info(`Block ${block.id} failed: ${err}`);
             });
             promises.push(blockResult);
         }
@@ -76,7 +78,7 @@ export class WorkflowRunner {
 
     private async executeBlock(block: WorkflowBlock): Promise<WorkflowBlockResult> {
         this.setBlockState(block, BlockState.Running);
-        console.log(`Executing block ${block.id}, current depth: ${this.depth}`);
+        log.info(`Executing block ${block.id}, current depth: ${this.depth}`);
         const expressionsResults = await this.evaluateExpressions(block.expressions);
         // Flatten the expressionsResults into a single object with all of the results.name and results.value properties
         const resultsObject: { [key: string]: any } = {};
@@ -97,17 +99,17 @@ export class WorkflowRunner {
         // First, flatten the results into a single object with all of the results.name and results.value properties
         const blocksToExecute: WorkflowBlock[] = [];
         const resultsObject = results.value;
-        console.log(resultsObject)
+        log.info(resultsObject)
         // for each fork, evaluate them and return the results
         for (const fork of block.forks) {
-            console.log(`Evaluating fork ${JSON.stringify(fork, null, 2)}`);
+            log.info(`Evaluating fork ${JSON.stringify(fork, null, 2)}`);
             // Evaluate the fork
             const forkResult = fork.evaluate(resultsObject);
             if (forkResult) {
                 // forkResult is an array of block ids
                 // Fork matches one or more blocks, filter through workflow blocks and execute them
                 const matchingBlocks = this.workflow.blocks.filter(b => forkResult.includes(b.id));
-                console.log(`Fork matched ${matchingBlocks.length} blocks`);
+                log.info(`Fork matched ${matchingBlocks.length} blocks`);
                 blocksToExecute.push(...matchingBlocks);
             }
         }
@@ -117,7 +119,7 @@ export class WorkflowRunner {
     private findChildBlocks(block: WorkflowBlock): WorkflowBlock[] {
         // Filter through workflow blocks and find all blocks that are children of this block
         const childBlocks = this.workflow.blocks.filter(b => b.parentBlocks.includes(block.id));
-        console.log(`Found ${childBlocks.length} child blocks`);
+        log.info(`Found ${childBlocks.length} child blocks`);
         return childBlocks;
     }
 

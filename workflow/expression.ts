@@ -24,7 +24,7 @@ import math = require("mathjs")
 export enum WorkflowExpressionType {
     Math = 'Math',
     Data = 'Data',
-    Control = 'Control'
+    Wait = 'Wait'
 }
 
 export enum WorkflowExpressionResultType {
@@ -87,9 +87,9 @@ export class WorkflowExpression {
         else if (obj.type === WorkflowExpressionType.Data) {
             return new WorkflowExpressionData(obj.id, obj.name, parameters);
         }
-        // else if (obj.type === WorkflowExpressionType.Control) {
-        // return new WorkflowExpressionControl(obj.id, obj.name, parameters);
-        // }
+        else if (obj.type === WorkflowExpressionType.Wait) {
+            return new WorkflowExpressionWait(obj.id, obj.name, parameters);
+        }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
     }
@@ -123,12 +123,30 @@ export class WorkflowExpressionData extends WorkflowExpression {
 
     /**
      * 
-     * @returns The result of the mathematical operation wrapped in a WorkflowExpressionResult.
+     * @returns The result of a data manipulation operation wrapped in a WorkflowExpressionResult.
      */
     public async compute(): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.data is untyped
         const result = this.parameters.data;
-        console.log(result);
+        // console.log(result);
+        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+    }
+}
+
+export class WorkflowExpressionWait extends WorkflowExpression {
+
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
+        super(id, name, parameters);
+    }
+
+    /**
+     * 
+     * @returns The result of a control operation wrapped in a WorkflowExpressionResult.
+     */
+    public async compute(): Promise<WorkflowExpressionResult> {
+        // FIXME: this.parameters.seconds is untyped
+        const result = this.parameters.seconds;
+        await new Promise(resolve => setTimeout(resolve, result * 1000));
         return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
     }
 }

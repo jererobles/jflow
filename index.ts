@@ -3,6 +3,8 @@ import { WorkflowExpressionType } from "./workflow/expression";
 import { WorkflowParser } from "./workflow/parser";
 import { WorkflowRunner } from "./workflow/runner";
 
+const log = require('simple-node-logger').createSimpleLogger();
+
 const date = new Date();
 
 const workflowDefinition = {
@@ -49,9 +51,45 @@ const workflowDefinition = {
             deletedAt: date
         },
         {
+            id: "delay",
+            name: "Delay",
+            expressions: [
+                {
+                    id: "",
+                    type: WorkflowExpressionType.Wait,
+                    parameters: [
+                        {
+                            id: "",
+                            name: "seconds",
+                            value: "6",
+                        }
+                    ],
+                }
+            ],
+            forks: [],
+            parentBlocks: [
+                "workflow"
+            ],
+            parameters: [],
+            createdAt: date,
+            updatedAt: date,
+            deletedAt: date
+        },
+        {
             id: "step1",
             name: "Step1",
             expressions: [
+                {
+                    id: "",
+                    type: WorkflowExpressionType.Wait,
+                    parameters: [
+                        {
+                            id: "",
+                            name: "seconds",
+                            value: "3"
+                        }
+                    ],
+                },
                 {
                     id: "",
                     type: WorkflowExpressionType.Data,
@@ -105,10 +143,10 @@ const wf = WorkflowParser.parse(workflowDefinition);
 const runner = new WorkflowRunner(wf);
 
 runner.onBlockFinished = (block, result) => {
-    console.log(`Block ${block.name} finished with result: ${JSON.stringify(result)}`);
+    log.info(`Block ${block.name} finished with result: ${JSON.stringify(result)}`);
 };
 
 runner.run().then(result => {
-    console.log("Workflow ended.");
-    console.log(JSON.stringify(result, null, 2));
+    log.info("Workflow ended.");
+    log.info(JSON.stringify(result, null, 2));
 });
