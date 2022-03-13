@@ -15,6 +15,7 @@ export enum BlockState {
 }
 export class WorkflowRunner {
     public workflow: Workflow;
+    public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
     private depth: number;
     private state: any;
 
@@ -38,8 +39,11 @@ export class WorkflowRunner {
         return new WorkflowResult(this.workflow.id, this.workflow.name, results, new Date(), new Date(), new Date());
     }
 
-    private setBlockState(block: WorkflowBlock, state: BlockState) {
+    private setBlockState(block: WorkflowBlock, state: BlockState, result: WorkflowBlockResult | null = null) {
         this.state[block.id] = state;
+        if (state === BlockState.Finished && result) {
+            this.onBlockFinished(block, result);
+        }
         console.log(`Block ${block.id} is now ${BlockState[state]}`);
     }
 
@@ -49,7 +53,7 @@ export class WorkflowRunner {
         for (const block of blocks) {
             const blockResult = this.executeBlock(block);
             blockResult.then(async (result: WorkflowBlockResult) => {
-                this.setBlockState(block, BlockState.Finished);
+                this.setBlockState(block, BlockState.Finished, result);
                 const childBlocks = this.findChildBlocks(block);
                 const forkBlocks = this.evaluateFork(block, result);
                 // FIXME: there is some recursion issue so killing the workflow if it gets too deep

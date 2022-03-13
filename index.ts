@@ -103,6 +103,12 @@ const workflowDefinition = {
 const wf = WorkflowParser.parse(workflowDefinition);
 
 const runner = new WorkflowRunner(wf);
+
+runner.onBlockFinished = (block, result) => {
+    console.log(`Block ${block.name} finished with result: ${JSON.stringify(result)}`);
+};
+
 runner.run().then(result => {
+    console.log("Workflow ended.");
     console.log(JSON.stringify(result, null, 2));
 });
