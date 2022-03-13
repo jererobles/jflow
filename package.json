@@ -11,7 +11,8 @@
     "express": "^4.17.3",
     "fs": "^0.0.1-security",
     "mathjs": "^10.3.0",
-    "util": "^0.12.4"
+    "util": "^0.12.4",
+    "yaml": "^1.10.2"
   },
   "devDependencies": {
     "@types/node": "^17.0.21",

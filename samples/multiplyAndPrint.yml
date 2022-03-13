@@ -1,0 +1,74 @@
+id: wf1
+name: Wf1
+environment: {}
+blocks:
+  - id: multiplyTwoByTwo
+    name: MultiplyTwoByTwo
+    expressions:
+      - id: ''
+        type: Math
+        parameters:
+          - id: ''
+            name: expression
+            value: 2 * 2
+    forks:
+      - id: fork1
+        name: Fork1
+        branches:
+          - statement:
+              - '=='
+              - $result
+              - '4'
+            resultTrueBlocks:
+              - step1
+            resultFalseBlocks:
+              - step2
+    parentBlocks:
+      - workflow
+    parameters: []
+
+  - id: delaySixSeconds
+    name: DelaySixSeconds
+    expressions:
+      - id: ''
+        type: Wait
+        parameters:
+          - id: ''
+            name: seconds
+            value: '6'
+    forks: []
+    parentBlocks:
+      - workflow
+    parameters: []
+
+  - id: printResultIsFour
+    name: printResultIsFour
+    expressions:
+      - id: ''
+        type: Wait
+        parameters:
+          - id: ''
+            name: seconds
+            value: '3'
+      - id: ''
+        type: Data
+        parameters:
+          - id: ''
+            name: data
+            value: result is four
+    forks: []
+    parentBlocks: []
+    parameters: []
+
+  - id: printResultIsNotFour
+    name: printResultIsNotFour
+    expressions:
+      - id: ''
+        type: Data
+        parameters:
+          - id: ''
+            name: data
+            value: result is not four
+    forks: []
+    parentBlocks: []
+    parameters: []

@@ -5,7 +5,6 @@
 import { Workflow, WorkflowResult } from ".";
 import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
-import { WorkflowFork } from "./fork";
 
 const log = require('simple-node-logger').createSimpleLogger();
 
@@ -13,14 +12,15 @@ export enum BlockState {
     NotStarted,
     Running,
     Finished,
-    Failed
+    Failed,
 }
 export class WorkflowRunner {
     public workflow: Workflow;
     public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
     private depth: number;
-    private state: any;
+    private state: { [key: string]: BlockState };
 
+    private static MAX_DEPTH = 100;
 
     constructor(workflow: Workflow) {
         this.workflow = workflow;
@@ -46,7 +46,7 @@ export class WorkflowRunner {
         if (state === BlockState.Finished && result) {
             this.onBlockFinished(block, result);
         }
-        log.info(`Block ${block.id} is now ${BlockState[state]}`);
+        log.info(`Block "${block.id}" is now ${BlockState[state]}`);
     }
 
     private async executeBlocks(blocks: WorkflowBlock[]): Promise<WorkflowBlockResult[]> {
@@ -58,16 +58,16 @@ export class WorkflowRunner {
                 this.setBlockState(block, BlockState.Finished, result);
                 const childBlocks = this.findChildBlocks(block);
                 const forkBlocks = this.evaluateFork(block, result);
-                // FIXME: there is some recursion issue so killing the workflow if it gets too deep
+                // limit the depth of the workflow to prevent infinite loops or excessive recursion
                 this.depth++;
-                if (this.depth > 10) {
-                    throw '';
+                if (this.depth > WorkflowRunner.MAX_DEPTH) {
+                    throw `Workflow exceeded maximum depth of ${WorkflowRunner.MAX_DEPTH} blocks`;
                 }
                 await this.executeBlocks([...childBlocks, ...forkBlocks]);
                 this.depth--;
             }).catch(err => {
                 this.setBlockState(block, BlockState.Failed);
-                log.info(`Block ${block.id} failed: ${err}`);
+                log.info(`Block "${block.id}" failed: ${err}`);
             });
             promises.push(blockResult);
         }
@@ -78,7 +78,7 @@ export class WorkflowRunner {
 
     private async executeBlock(block: WorkflowBlock): Promise<WorkflowBlockResult> {
         this.setBlockState(block, BlockState.Running);
-        log.info(`Executing block ${block.id}, current depth: ${this.depth}`);
+        log.info(`Executing block "${block.id}", current depth: ${this.depth}`);
         const expressionsResults = await this.evaluateExpressions(block.expressions);
         // Flatten the expressionsResults into a single object with all of the results.name and results.value properties
         const resultsObject: { [key: string]: any } = {};
