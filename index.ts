@@ -1,37 +1,112 @@
 import "./workflow";
-import { Workflow } from "./workflow";
-import { WorkflowBlock } from "./workflow/block";
-import { WorkflowExpressionData, WorkflowExpressionMath, WorkflowExpressionParameter, WorkflowExpressionType } from "./workflow/expression";
-import { WorkflowFork } from "./workflow/fork";
+import { WorkflowExpressionType } from "./workflow/expression";
+import { WorkflowParser } from "./workflow/parser";
 import { WorkflowRunner } from "./workflow/runner";
 
 const date = new Date();
 
-const wf = new Workflow("wf1", "Wf1", [
-    new WorkflowBlock("main", "Main", [
-        new WorkflowExpressionMath("", "", WorkflowExpressionType.Math, [
-            new WorkflowExpressionParameter("", "expression", "", "", "2 * 2", "")
-        ], [])
-    ], [new WorkflowFork("fork1", "Fork1", "simple",
-        [
-            '==', '$result', '4'
-        ],
+const workflowDefinition = {
+    id: "wf1",
+    name: "Wf1",
+    environment: {},
+    blocks: [
         {
-            "true": "step1",
-            "false": "step2"
+            id: "main",
+            name: "Main",
+            expressions: [
+                {
+                    id: "",
+                    type: WorkflowExpressionType.Math,
+                    parameters: [
+                        {
+                            id: "",
+                            name: "expression",
+                            value: "2 * 2",
+                        }
+                    ],
+                    results: []
+                }
+            ],
+            forks: [
+                {
+                    id: "fork1",
+                    name: "Fork1",
+                    branches: [{
+                        statement: ["==",
+                            "$result",
+                            "4"
+                        ],
+                        resultTrueBlocks: ["step1"],
+                        resultFalseBlocks: ["step2"]
+                    }],
+                }
+            ],
+            parentBlocks: [
+                "workflow"
+            ],
+            parameters: [],
+            results: [],
+            createdAt: date,
+            updatedAt: date,
+            deletedAt: date
+        },
+        {
+            id: "step1",
+            name: "Step1",
+            expressions: [
+                {
+                    id: "",
+                    type: WorkflowExpressionType.Data,
+                    parameters: [
+                        {
+                            id: "",
+                            name: "data",
+                            value: "result is four"
+                        }
+                    ],
+                    results: []
+                }
+            ],
+            forks: [],
+            parentBlocks: [],
+            parameters: [],
+            results: [],
+            createdAt: date,
+            updatedAt: date,
+            deletedAt: date
+        },
+        {
+            id: "step2",
+            name: "Step2",
+            expressions: [
+                {
+                    id: "",
+                    type: WorkflowExpressionType.Data,
+                    parameters: [
+                        {
+                            id: "",
+                            name: "data",
+                            value: "result is not four"
+                        }
+                    ],
+                    results: []
+                }
+            ],
+            forks: [],
+            parentBlocks: [],
+            parameters: [],
+            results: [],
+            createdAt: date,
+            updatedAt: date,
+            deletedAt: date
         }
-    )], ["workflow"], [], [], date, date, date),
-    new WorkflowBlock("step1", "Step1", [
-        new WorkflowExpressionData("", "", WorkflowExpressionType.Math, [
-            new WorkflowExpressionParameter("", "data", "", "", "result is four", "")
-        ], [])
-    ], null, [], [], [], date, date, date),
-    new WorkflowBlock("step2", "Step2", [
-        new WorkflowExpressionData("", "", WorkflowExpressionType.Math, [
-            new WorkflowExpressionParameter("", "data", "", "", "result is not four", "")
-        ], [])
-    ], null, [], [], [], date, date, date)
-], date, date, date);
+    ],
+    createdAt: date,
+    updatedAt: date,
+    deletedAt: date
+};
+
+const wf = WorkflowParser.parse(workflowDefinition);
 
 
 const runner = new WorkflowRunner(wf);

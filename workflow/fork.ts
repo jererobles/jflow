@@ -11,8 +11,6 @@ import { ExpressionInput } from '@briza/illogical/types/parser';
 import { WorkflowBlock } from './block';
 
 
-export type WorkflowForkType = 'simple' | 'mapped';
-
 export class WorkflowFork {
     public id: string;
     public name: string;
@@ -59,11 +57,13 @@ export class WorkflowFork {
     public evaluate(input: any): string[] {
         const results: string[] = [];
         for (const branch of this.branches) {
-            const result = branch.evaluable.evaluate(input);
-            if (result) {
-                results.push(...branch.resultTrueBlocks);
-            } else {
-                results.push(...branch.resultFalseBlocks);
+            if (branch.evaluable) {
+                const result = branch.evaluable.evaluate(input);
+                if (result) {
+                    results.push(...branch.resultTrueBlocks);
+                } else {
+                    results.push(...branch.resultFalseBlocks);
+                }
             }
         }
         return results;

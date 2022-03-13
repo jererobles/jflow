@@ -1,6 +1,6 @@
 import { Workflow } from "./";
-import { WorkflowBlock } from "./block";
-import { WorkflowExpression, WorkflowExpressionData, WorkflowExpressionMath, WorkflowExpressionParameter, WorkflowExpressionType } from "./expression";
+import { WorkflowBlock, WorkflowBlockParameter } from "./block";
+import { WorkflowExpression, WorkflowExpressionData, WorkflowExpressionMath, WorkflowExpressionParameter, WorkflowExpressionResult, WorkflowExpressionType } from "./expression";
 import { WorkflowFork } from "./fork";
 
 // The workflow definition is stored in a JSON file.
@@ -96,7 +96,7 @@ const workflowDefinitionExample = {
 
 
 // The Parser class parses a workflow definition and returns a Workflow object.
-class Parser {
+export class WorkflowParser {
     public static parse(workflowDefinition: any): Workflow {
         // parse environment variables
         let environment: any = {};
@@ -121,12 +121,12 @@ class Parser {
             // parse parameters
             // let parameters: WorkflowExpressionParameter[] = blockDefinition.parameters.map((parameterDefinition: any) =>
             //     WorkflowExpressionParameter.fromObject(parameterDefinition));
-            let parameters = [];
+            let parameters: WorkflowExpressionParameter[] = [];
 
             // parse results
             // let results: WorkflowExpression[] = blockDefinition.results.map((resultDefinition: any) =>
             //     WorkflowExpression.fromObject(resultDefinition));
-            let results = [];
+            let results: WorkflowExpressionResult[] = [];
 
             // parse dates
             // let createdAt: Date = new Date(blockDefinition.createdAt);

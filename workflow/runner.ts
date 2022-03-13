@@ -54,18 +54,17 @@ export class WorkflowRunner {
     }
 
     private async evaluateFork(block: WorkflowBlock, results: WorkflowExpressionResult[]): Promise<WorkflowBlockResult[] | undefined> {
-        // TODO: do something with results, possibly log them and execute the next step recursively
-        // execute the next step, which could be a fork or a block
-        if (block.fork) {
-            console.log(`Evaluating fork ${block.fork.id}`);
+        // First, flatten the results into a single object with all of the results.name and results.value properties
+        const resultsObject: { [key: string]: any } = {};
+        for (const result of results) {
+            resultsObject[result.name] = result.value;
+        }
+        console.log(resultsObject)
+        // for each fork, evaluate them and return the results
+        for (const fork of block.forks) {
+            console.log(`Evaluating fork ${fork}`);
             // Evaluate the fork
-            // First, flatten the results into a single object with all of the results.name and results.value properties
-            const resultsObject: { [key: string]: any } = {};
-            for (const result of results) {
-                resultsObject[result.name] = result.value;
-            }
-            console.log(resultsObject)
-            const forkResult = block.fork.evaluate(resultsObject);
+            const forkResult = fork.evaluate(resultsObject);
             if (forkResult) {
                 // forkResult is an array of block ids
                 // Fork matches one or more blocks, filter through workflow blocks and execute them
