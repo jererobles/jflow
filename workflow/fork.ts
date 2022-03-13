@@ -35,7 +35,6 @@ export class WorkflowFork {
         }
     }
 
-
     /**
      * Evaluate a mapped fork statement, similar to a simple fork statement
      * but the result can be other than true or false
@@ -72,8 +71,6 @@ export class WorkflowFork {
     public static fromObject(object: any): WorkflowFork {
         return new WorkflowFork(object.id, object.name, object.branches);
     }
-
-
 }
 
 export interface WorkflowForkBranch {

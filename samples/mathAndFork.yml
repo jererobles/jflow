@@ -1,5 +1,5 @@
-id: wf1
-name: Wf1
+id: mathAndFork
+name: MathAndFork
 environment: {}
 blocks:
   - id: multiplyTwoByTwo
@@ -20,9 +20,9 @@ blocks:
               - $result
               - '4'
             resultTrueBlocks:
-              - step1
+              - printResultIsFour
             resultFalseBlocks:
-              - step2
+              - printResultIsNotFour
     parentBlocks:
       - workflow
     parameters: []
@@ -51,7 +51,7 @@ blocks:
             name: seconds
             value: '3'
       - id: ''
-        type: Data
+        type: ConsoleLog
         parameters:
           - id: ''
             name: data
@@ -64,7 +64,7 @@ blocks:
     name: printResultIsNotFour
     expressions:
       - id: ''
-        type: Data
+        type: ConsoleLog
         parameters:
           - id: ''
             name: data

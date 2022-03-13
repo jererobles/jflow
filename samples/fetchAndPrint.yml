@@ -1,0 +1,31 @@
+id: multiplyAndPrint
+name: MultiplyAndPrint
+environment: {}
+blocks:
+  - id: fetchUrl
+    name: FetchUrl
+    expressions:
+      - id: ''
+        type: HTTPRequest
+        parameters:
+          - id: ''
+            name: url
+            value: https://weather.cit.api.here.com/weather/1.0/report.json?product=observation&name=London&app_id=DemoAppId01082013GAL&app_code=AJKnXv84fjrb0KIHawS0Tg
+    forks: []
+    parentBlocks:
+      - workflow
+    parameters: []
+
+  - id: printResult
+    name: PrintResult
+    expressions:
+      - id: ''
+        type: ConsoleLog
+        parameters:
+          - id: ''
+            name: data
+            value: '6'
+    forks: []
+    parentBlocks:
+      - fetchUrl
+    parameters: []

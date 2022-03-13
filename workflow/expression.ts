@@ -2,7 +2,9 @@
 // A workflow block takes a set of parameters, performs some computation, and returns a set of results.
 // A workflow block computation depends on the type of the workflow block expression.
 // Workflow block expression types: Math, Data, and Control.
-import math = require("mathjs")
+const fetch = require("node-fetch");
+
+import math from 'mathjs'
 
 /**
  * There are 3 WorkflowBlockExpressionTypes: Math, Data, and Control.
@@ -23,10 +25,12 @@ import math = require("mathjs")
 // TODO: these could be their own classes and enums could instead be used for subtypes such as "log to console"
 export enum WorkflowExpressionType {
     Math = 'Math',
-    Data = 'Data',
+    ConsoleLog = 'ConsoleLog',
+    HTTPRequest = 'HTTPRequest',
     Wait = 'Wait'
 }
 
+// TODO: implement type checking for parameters
 export enum WorkflowExpressionResultType {
     Number = 'Number',
     String = 'String',
@@ -39,7 +43,7 @@ export class WorkflowExpressionParameter {
     public id: string;
     public name: string;
     public type: string;
-    public defaultValue: any;
+    public defaultValue: any; // TODO: implement default value for parameters
     public value: any;
     public description: string;
 
@@ -84,11 +88,14 @@ export class WorkflowExpression {
         if (obj.type === WorkflowExpressionType.Math) {
             return new WorkflowExpressionMath(obj.id, obj.name, parameters);
         }
-        else if (obj.type === WorkflowExpressionType.Data) {
-            return new WorkflowExpressionData(obj.id, obj.name, parameters);
+        else if (obj.type === WorkflowExpressionType.ConsoleLog) {
+            return new WorkflowExpressionConsoleLog(obj.id, obj.name, parameters);
         }
         else if (obj.type === WorkflowExpressionType.Wait) {
             return new WorkflowExpressionWait(obj.id, obj.name, parameters);
+        }
+        else if (obj.type === WorkflowExpressionType.HTTPRequest) {
+            return new WorkflowExpressionHTTPRequest(obj.id, obj.name, parameters);
         }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
@@ -97,7 +104,6 @@ export class WorkflowExpression {
 
 // WorkflowBlockExpressionMath is a workflow block expression that performs a mathematical operation.
 // The mathematical operation can be any operation supported by the imported mathjs library.
-// The class takes a `mathExpression` parameter that specifies the mathematical operation to perform.
 export class WorkflowExpressionMath extends WorkflowExpression {
 
     constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
@@ -115,7 +121,7 @@ export class WorkflowExpressionMath extends WorkflowExpression {
     }
 }
 
-export class WorkflowExpressionData extends WorkflowExpression {
+export class WorkflowExpressionConsoleLog extends WorkflowExpression {
 
     constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
         super(id, name, parameters);
@@ -123,12 +129,12 @@ export class WorkflowExpressionData extends WorkflowExpression {
 
     /**
      * 
-     * @returns The result of a data manipulation operation wrapped in a WorkflowExpressionResult.
+     * @returns The result of console.log operation wrapped in a WorkflowExpressionResult.
      */
     public async compute(): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.data is untyped
         const result = this.parameters.data;
-        // console.log(result);
+        console.log(result);
         return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
     }
 }
@@ -151,6 +157,26 @@ export class WorkflowExpressionWait extends WorkflowExpression {
     }
 }
 
+export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
+
+    constructor(id: string, name: string, parameters: WorkflowExpressionParameter[]) {
+        super(id, name, parameters);
+    }
+
+    /**
+     * 
+     * @returns The result of an HTTP request wrapped in a WorkflowExpressionResult.
+     */
+    public async compute(): Promise<WorkflowExpressionResult> {
+        const { url, method, headers, data } = this.parameters;
+        const result = await fetch(url, {
+            method: method,
+            headers: headers,
+            body: data
+        });
+        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+    }
+}
 
 export class WorkflowExpressionResult {
     public id: string;

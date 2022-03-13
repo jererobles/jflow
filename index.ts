@@ -2,13 +2,15 @@ import fs from 'fs'
 import YAML from 'yaml'
 
 import "./workflow";
-import { WorkflowExpressionType } from "./workflow/expression";
 import { WorkflowParser } from "./workflow/parser";
 import { WorkflowRunner } from "./workflow/runner";
 
-const log = require('simple-node-logger').createSimpleLogger();
+import SimpleLogger from "simple-node-logger";
 
-const file = fs.readFileSync('./samples/multiplyAndPrint.yml', 'utf8')
+const log = SimpleLogger.createSimpleLogger();
+
+const file = fs.readFileSync('./samples/fetchAndPrint.yml', 'utf8')
+// const file = fs.readFileSync('./samples/mathAndFork.yml', 'utf8')
 const workflowDefinition = YAML.parse(file)
 
 const wf = WorkflowParser.parse(workflowDefinition);

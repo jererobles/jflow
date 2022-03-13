@@ -32,7 +32,6 @@ export class WorkflowBlock {
         this.updatedAt = updatedAt;
         this.deletedAt = deletedAt;
     }
-
 }
 
 export class WorkflowBlockParameter {
@@ -50,8 +49,6 @@ export class WorkflowBlockParameter {
         this.description = description;
     }
 }
-
-
 
 export class WorkflowBlockResult {
     public id: string;

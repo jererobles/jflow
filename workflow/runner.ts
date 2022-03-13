@@ -6,7 +6,9 @@ import { Workflow, WorkflowResult } from ".";
 import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
 
-const log = require('simple-node-logger').createSimpleLogger();
+import SimpleLogger from "simple-node-logger";
+
+const log = SimpleLogger.createSimpleLogger();
 
 export enum BlockState {
     NotStarted,
@@ -14,6 +16,7 @@ export enum BlockState {
     Finished,
     Failed,
 }
+
 export class WorkflowRunner {
     public workflow: Workflow;
     public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
@@ -122,6 +125,4 @@ export class WorkflowRunner {
         log.info(`Found ${childBlocks.length} child blocks`);
         return childBlocks;
     }
-
-
 }
