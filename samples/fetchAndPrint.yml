@@ -1,5 +1,5 @@
-id: multiplyAndPrint
-name: MultiplyAndPrint
+id: fetchAndPrint
+name: FetchAndPrint
 environment: {}
 blocks:
   - id: fetchUrl
@@ -11,21 +11,14 @@ blocks:
           - id: ''
             name: url
             value: https://weather.cit.api.here.com/weather/1.0/report.json?product=observation&name=London&app_id=DemoAppId01082013GAL&app_code=AJKnXv84fjrb0KIHawS0Tg
+        withResult:
+          id: ''
+          type: ConsoleLog
+          parameters:
+            - id: ''
+              name: data
+              value: '{{observations.location[0].observation[0].temperature}}°C {{observations.location[0].observation[0].skyDescription}}'
     forks: []
     parentBlocks:
       - workflow
-    parameters: []
-
-  - id: printResult
-    name: PrintResult
-    expressions:
-      - id: ''
-        type: ConsoleLog
-        parameters:
-          - id: ''
-            name: data
-            value: '6'
-    forks: []
-    parentBlocks:
-      - fetchUrl
     parameters: []

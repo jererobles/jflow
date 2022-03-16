@@ -8,7 +8,11 @@ import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
 
 import SimpleLogger from "simple-node-logger";
 
-const log = SimpleLogger.createSimpleLogger();
+const log = SimpleLogger.createSimpleLogger(
+    {
+        level: "error",
+    }
+);
 
 export enum BlockState {
     NotStarted,

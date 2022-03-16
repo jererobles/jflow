@@ -7,10 +7,14 @@ import { WorkflowRunner } from "./workflow/runner";
 
 import SimpleLogger from "simple-node-logger";
 
-const log = SimpleLogger.createSimpleLogger();
+const log = SimpleLogger.createSimpleLogger(
+    {
+        level: "error",
+    }
+);
 
-const file = fs.readFileSync('./samples/fetchAndPrint.yml', 'utf8')
-// const file = fs.readFileSync('./samples/mathAndFork.yml', 'utf8')
+// const file = fs.readFileSync('./samples/fetchAndPrint.yml', 'utf8')
+const file = fs.readFileSync('./samples/mathAndFork.yml', 'utf8')
 const workflowDefinition = YAML.parse(file)
 
 const wf = WorkflowParser.parse(workflowDefinition);
