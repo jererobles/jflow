@@ -1,4 +1,8 @@
-# Run
+# JFlow
+
+<img src="diagram.png">
+
+## Run
 
 ```bash
 git clone git@github.com:jererobles/jflow.git
@@ -7,7 +11,7 @@ yarn install
 npx ts-node index.ts
 ```
 
-# To Do
+## To Do
 
 -   [x] define execution flow
     1. workflow start
@@ -19,16 +23,16 @@ npx ts-node index.ts
     5. (3) and (4) are repeated until all blocks are executed
     6. workflow end
 -   [x] define meta language
--   [ ] define states
+-   [x] define states
     1. pending
     2. running
     3. completed (success, skipped, failed)
     4. cancelled
 -   [x] write models
--   [ ] write parser
+-   [x] write parser
 -   [x] write runner
 -   [ ] query execution state
 -   [ ] build basic UI
 -   [x] implement basic block types
 -   [x] first manual e2e test
--   [ ] fixme: having both enums and classes for types is silly
+-   [x] fixme: having both enums and classes for types is silly
