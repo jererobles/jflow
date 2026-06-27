@@ -1,4 +1,4 @@
-import { Workflow } from "./";
+import { Workflow } from "./index";
 import { WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionParameter } from "./expression";
 import { WorkflowFork } from "./fork";
@@ -9,22 +9,22 @@ export class WorkflowParser {
     public static parse(workflowDefinition: any): Workflow {
         // parse environment variables
         let environment: any = {};
-        for (let key in workflowDefinition.environment) {
+        for (let key in workflowDefinition.environment ?? {}) {
             environment[key] = workflowDefinition.environment[key];
         }
 
         // parse blocks
         let blocks: WorkflowBlock[] = [];
-        for (let blockDefinition of workflowDefinition.blocks) {
+        for (let blockDefinition of workflowDefinition.blocks ?? []) {
             // parse parent blocks
-            let parentBlocks: string[] = blockDefinition.parentBlocks;
+            let parentBlocks: string[] = blockDefinition.parentBlocks ?? [];
 
             // parse expressions
-            let expressions: WorkflowExpression[] = blockDefinition.expressions.map((expressionDefinition: any) =>
+            let expressions: WorkflowExpression[] = (blockDefinition.expressions ?? []).map((expressionDefinition: any) =>
                 WorkflowExpression.fromObject(expressionDefinition));
 
             // parse forks
-            let forks: WorkflowFork[] = blockDefinition.forks.map((forkDefinition: any) =>
+            let forks: WorkflowFork[] = (blockDefinition.forks ?? []).map((forkDefinition: any) =>
                 WorkflowFork.fromObject(forkDefinition));
 
             // parse parameters
@@ -59,9 +59,9 @@ export class WorkflowParser {
         }
 
         // parse dates
-        let createdAt: Date = new Date(workflowDefinition.createdAt);
-        let updatedAt: Date = new Date(workflowDefinition.updatedAt);
-        let deletedAt: Date = new Date(workflowDefinition.deletedAt);
+        let createdAt: Date = workflowDefinition.createdAt ? new Date(workflowDefinition.createdAt) : new Date();
+        let updatedAt: Date = workflowDefinition.updatedAt ? new Date(workflowDefinition.updatedAt) : new Date();
+        let deletedAt: Date = workflowDefinition.deletedAt ? new Date(workflowDefinition.deletedAt) : new Date();
 
         // create workflow
         let workflow = new Workflow(

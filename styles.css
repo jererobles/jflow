@@ -1,0 +1,206 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #08111f;
+  color: #e5eefb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(68, 134, 255, 0.18), transparent 40%),
+    #08111f;
+}
+
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+#app {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.shell {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.hero,
+.panel {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+}
+
+.hero {
+  padding: 1.75rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.hero p {
+  margin: 0;
+  max-width: 58rem;
+  color: #cbd5e1;
+}
+
+.workspace {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    align-items: start;
+  }
+}
+
+.panel {
+  padding: 1.25rem;
+}
+
+.panel h2,
+.panel h3 {
+  margin-top: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.toolbar label,
+.meta {
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+select,
+textarea,
+.output {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.9);
+  color: inherit;
+}
+
+select {
+  min-width: 14rem;
+  padding: 0.75rem 0.9rem;
+}
+
+textarea {
+  min-height: 28rem;
+  padding: 1rem;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 1.15rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+  transform: none;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+}
+
+.button-secondary {
+  background: rgba(30, 41, 59, 0.95);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+}
+
+.status::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.status-running {
+  color: #f59e0b;
+}
+
+.status-success {
+  color: #10b981;
+}
+
+.status-error {
+  color: #f87171;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.output {
+  min-height: 10rem;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.meta-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meta-list strong {
+  color: #e2e8f0;
+}
