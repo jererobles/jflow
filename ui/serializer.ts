@@ -12,6 +12,7 @@ export function serialize(): string {
     name: node.name,
     expressions: node.expressions.map((expr) => ({
       id: expr.id,
+      name: expr.name,
       type: expr.type,
       parameters: expr.parameters.map((p) => ({
         id: p.id,
@@ -47,6 +48,7 @@ export function deserialize(yamlStr: string) {
   const nodes: NodeData[] = (def.blocks ?? []).map((block: any, index: number) => {
     const expressions: ExpressionData[] = (block.expressions ?? []).map((expr: any) => ({
       id: expr.id || `expr_${Math.random().toString(36).slice(2, 6)}`,
+      name: expr.name || expr.id || expr.type?.toLowerCase?.() || "result",
       type: expr.type,
       parameters: (expr.parameters ?? []).map((p: any) => ({
         id: p.id || "",

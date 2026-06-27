@@ -1,14 +1,8 @@
 /** Node palette – drag new blocks onto canvas */
 
 import { addNode, getState } from "./state";
-import { NodeData, ExpressionData } from "./types";
-
-const BLOCK_TEMPLATES: { label: string; icon: string; expressionType: string }[] = [
-  { label: "Math", icon: "🧮", expressionType: "Math" },
-  { label: "Console Log", icon: "📝", expressionType: "ConsoleLog" },
-  { label: "HTTP Request", icon: "🌐", expressionType: "HTTPRequest" },
-  { label: "Wait", icon: "⏱️", expressionType: "Wait" },
-];
+import { NodeData } from "./types";
+import { EXPRESSION_LIBRARY, createExpression } from "./expressionTemplates";
 
 let paletteEl: HTMLDivElement;
 
@@ -23,7 +17,7 @@ export function initPalette(container: HTMLElement) {
     </div>
     <div class="jf-collapsible__body">
       <div class="jf-palette__items">
-        ${BLOCK_TEMPLATES.map(
+        ${EXPRESSION_LIBRARY.map(
           (t, i) => `
           <button class="jf-palette__item" data-idx="${i}" draggable="true">
             <span class="jf-palette__icon">${t.icon}</span>
@@ -69,7 +63,7 @@ export function handleCanvasDrop(e: DragEvent) {
 }
 
 function addBlockFromTemplate(idx: number, position?: { x: number; y: number }) {
-  const template = BLOCK_TEMPLATES[idx];
+  const template = EXPRESSION_LIBRARY[idx];
   if (!template) return;
 
   const id = `block_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -81,11 +75,7 @@ function addBlockFromTemplate(idx: number, position?: { x: number; y: number }) 
     y: 100 + Math.floor(nodes.length / 3) * 150,
   };
 
-  const expression: ExpressionData = {
-    id: `expr_${Date.now()}`,
-    type: template.expressionType,
-    parameters: getDefaultParams(template.expressionType),
-  };
+  const expression = createExpression(template.expressionType);
 
   const node: NodeData = {
     id,
@@ -98,22 +88,4 @@ function addBlockFromTemplate(idx: number, position?: { x: number; y: number }) 
   };
 
   addNode(node);
-}
-
-function getDefaultParams(type: string): { id: string; name: string; value: string }[] {
-  switch (type) {
-    case "Math":
-      return [{ id: "p1", name: "expression", value: "2 + 2" }];
-    case "ConsoleLog":
-      return [{ id: "p1", name: "data", value: "Hello from JFlow" }];
-    case "HTTPRequest":
-      return [
-        { id: "p1", name: "url", value: "https://httpbin.org/get" },
-        { id: "p2", name: "method", value: "GET" },
-      ];
-    case "Wait":
-      return [{ id: "p1", name: "seconds", value: "2" }];
-    default:
-      return [];
-  }
 }

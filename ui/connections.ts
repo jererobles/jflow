@@ -2,7 +2,8 @@
 
 import { NodeData, NodeExecutionState } from "./types";
 
-const NODE_WIDTH = 200;
+const NODE_WIDTH = () =>
+  typeof window !== "undefined" && window.innerWidth <= 768 ? Math.min(180, window.innerWidth - 32) : 200;
 const NODE_HEIGHT = 80;
 
 export function renderConnections(
@@ -47,9 +48,10 @@ function drawConnection(
   type: "parent" | "true" | "false",
   executionStates: Record<string, NodeExecutionState>
 ) {
-  const fromX = from.position.x + NODE_WIDTH / 2;
+  const nodeWidth = NODE_WIDTH();
+  const fromX = from.position.x + nodeWidth / 2;
   const fromY = from.position.y + NODE_HEIGHT;
-  const toX = to.position.x + NODE_WIDTH / 2;
+  const toX = to.position.x + nodeWidth / 2;
   const toY = to.position.y;
 
   // Bezier curve

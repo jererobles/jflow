@@ -81,7 +81,7 @@ export class WorkflowExpression {
 
     constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], withResult: WorkflowExpression | null = null) {
         this.id = id;
-        this.name = name;
+        this.name = name || id || 'result';
         this.parameters = {};
         this.withResult = withResult;
         for (let param of parameters) {
@@ -121,16 +121,16 @@ export class WorkflowExpression {
 
         // use WorkflowExpressionType to instantiate the correct type
         if (obj.type === WorkflowExpressionType.Math) {
-            return new WorkflowExpressionMath(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionMath(obj.id, obj.name || obj.id || 'result', parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.ConsoleLog) {
-            return new WorkflowExpressionConsoleLog(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionConsoleLog(obj.id, obj.name || obj.id || 'result', parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.Wait) {
-            return new WorkflowExpressionWait(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionWait(obj.id, obj.name || obj.id || 'result', parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.HTTPRequest) {
-            return new WorkflowExpressionHTTPRequest(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionHTTPRequest(obj.id, obj.name || obj.id || 'result', parameters, withResult);
         }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
@@ -151,14 +151,12 @@ export class WorkflowExpressionMath extends WorkflowExpression {
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.expression is untyped
-        let result = evaluate(this.parameters.expression);
-        if (context) {
-            result = this.contextualize(context, result);
-        }
+        const expression = this.contextualize(context, this.parameters.expression);
+        let result = evaluate(expression);
         if (this.withResult) {
             result = await this.withResult.compute(result);
         }
-        return new WorkflowExpressionResult("result", "result", WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -182,7 +180,7 @@ export class WorkflowExpressionConsoleLog extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         console.log(result);
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -206,7 +204,7 @@ export class WorkflowExpressionWait extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         await new Promise(resolve => setTimeout(resolve, result * 1000));
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -221,10 +219,13 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
      * @returns The result of an HTTP request wrapped in a WorkflowExpressionResult.
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
-        const { url, method, headers, data } = this.parameters;
+        const url = this.contextualize(context, this.parameters.url);
+        const method = this.contextualize(context, this.parameters.method);
+        const headers = this.parameters.headers ? this.contextualize(context, this.parameters.headers) : undefined;
+        const data = this.parameters.data ? this.contextualize(context, this.parameters.data) : undefined;
         const response = await fetch(url, {
             method: method,
-            headers: headers,
+            headers: headers as any,
             body: data
         });
         const json = await response.json();
@@ -234,7 +235,7 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
         } else {
             result = JSON.stringify(json);
         }
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
     }
 }
 

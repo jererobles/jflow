@@ -17,6 +17,7 @@ export interface NodeData {
 
 export interface ExpressionData {
   id: string;
+  name: string;
   type: string;
   parameters: { id: string; name: string; value: string }[];
 }

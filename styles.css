@@ -116,17 +116,23 @@ button, select, input {
 /* Mobile: sidebar becomes bottom sheet */
 @media (max-width: 768px) {
   .jf-layout {
-    flex-direction: column;
+    min-height: 0;
   }
 
   .jf-layout__sidebar {
-    width: 100%;
-    max-height: 40vh;
-    border-left: none;
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+    max-height: min(68vh, 560px);
+    border: 1px solid var(--border);
     border-top: 1px solid var(--border);
-    flex-direction: row;
-    flex-wrap: wrap;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    flex-direction: column;
     overflow-y: auto;
+    z-index: 20;
   }
 }
 
@@ -229,6 +235,15 @@ button, select, input {
 }
 
 @media (max-width: 480px) {
+  .jf-toolbar {
+    align-items: flex-start;
+  }
+  .jf-toolbar__actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+    flex-wrap: nowrap;
+  }
   .jf-toolbar__btn-label {
     display: none;
   }
@@ -300,6 +315,12 @@ button, select, input {
   backdrop-filter: blur(12px);
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.1s;
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .jf-node {
+    width: min(180px, calc(100vw - 2rem));
+  }
 }
 
 .jf-node:active {
@@ -413,12 +434,11 @@ button, select, input {
 
 @media (max-width: 768px) {
   .jf-palette {
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-    min-width: 50%;
+    border-right: none;
+    min-width: 100%;
   }
   .jf-palette__items {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -470,7 +490,7 @@ button, select, input {
 
 @media (max-width: 768px) {
   .jf-panel {
-    min-width: 50%;
+    min-width: 100%;
   }
 }
 
@@ -513,6 +533,14 @@ button, select, input {
   padding: 0.75rem 1rem;
 }
 
+.jf-panel__hint {
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
 .jf-panel__state {
   display: inline-flex;
   padding: 0.1rem 0.45rem;
@@ -538,6 +566,10 @@ button, select, input {
   margin-top: 0.3rem;
 }
 
+.jf-field--fill {
+  flex: 1;
+}
+
 .jf-field__label {
   font-size: 0.75rem;
   font-weight: 500;
@@ -554,6 +586,17 @@ button, select, input {
   font-size: 0.8rem;
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
+}
+
+.jf-field__input--compact {
+  min-width: 0;
+  max-width: 160px;
+}
+
+.jf-field__textarea {
+  min-height: 86px;
+  resize: vertical;
+  white-space: pre-wrap;
 }
 
 .jf-field__input:focus {
@@ -597,6 +640,74 @@ button, select, input {
   background: rgba(2, 6, 20, 0.4);
 }
 
+.jf-fork,
+.jf-fork-branch {
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 20, 0.35);
+}
+
+.jf-fork-branch {
+  margin-top: 0.5rem;
+}
+
+.jf-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.jf-card__header,
+.jf-section__header,
+.jf-inline-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.jf-card__header,
+.jf-section__header {
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.jf-inline-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.jf-reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.jf-reference-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.08);
+  color: #bfdbfe;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.jf-reference-chip:hover {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.16);
+  transform: translateY(-1px);
+}
+
+.jf-reference-chip--active {
+  background: rgba(59, 130, 246, 0.22);
+  color: white;
+}
+
 .jf-expr__type {
   display: inline-flex;
   padding: 0.15rem 0.5rem;
@@ -626,6 +737,10 @@ button, select, input {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.jf-btn--ghost {
+  background: transparent;
 }
 
 .jf-btn:hover {
@@ -704,6 +819,12 @@ button, select, input {
 
 .jf-results {
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .jf-results {
+    min-width: 100%;
+  }
 }
 
 .jf-results__count {

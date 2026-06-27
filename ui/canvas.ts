@@ -102,12 +102,15 @@ function bindPanEvents(container: HTMLDivElement) {
   }, { passive: false });
 }
 
-export function startNodeDrag(nodeId: string, clientX: number, clientY: number) {
+export function startNodeDrag(nodeId: string, clientX: number, clientY: number, pointerId?: number) {
   const node = getState().nodes.find((n) => n.id === nodeId);
   if (!node) return;
   dragNodeId = nodeId;
   dragStart = { x: clientX, y: clientY };
   dragNodeStart = { ...node.position };
+  if (containerEl && pointerId != null) {
+    containerEl.setPointerCapture(pointerId);
+  }
   setState({ selectedNodeId: nodeId });
 }
 
