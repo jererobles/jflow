@@ -74,6 +74,12 @@ export class WorkflowRunner {
         for (const result of expressionsResults) {
             resultsObject[result.name] = result.value;
         }
+        // Keep a stable `result` alias for existing forks/samples while letting
+        // richer blocks expose additional named expression outputs.
+        const lastExpressionResult = expressionsResults[expressionsResults.length - 1];
+        if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
+            resultsObject.result = lastExpressionResult.value;
+        }
         return new WorkflowBlockResult(block.id, block.name, "String", resultsObject);
     }
 
@@ -85,23 +91,16 @@ export class WorkflowRunner {
             const result = await expression.compute(scopedContext);
             results.push(result);
             currentResults[result.name] = result.value;
+            // Keep `result` pointed at the latest expression output so later
+            // expressions can reference the most recent value with {{result}}.
             currentResults.result = result.value;
-            currentResults.last = result.value;
         }
         return results;
     }
 
     private evaluateFork(block: WorkflowBlock, results: WorkflowBlockResult, context: ExecutionContext): WorkflowBlock[] {
         const blocksToExecute: WorkflowBlock[] = [];
-        const resultsObject = {
-            ...context.workflow,
-            ...context.blocks,
-            ...results.value,
-            current: results.value,
-            workflow: context.workflow,
-            blocks: context.blocks,
-            result: results.value.result ?? Object.values(results.value)[0],
-        };
+        const resultsObject = this.createScopedContext(context, results.value);
         // for each fork, evaluate them and return the results
         for (const fork of block.forks) {
             // Evaluate the fork
@@ -132,7 +131,6 @@ export class WorkflowRunner {
 
     private createContext(): ExecutionContext {
         return {
-            workflow: {},
             blocks: {},
         };
     }
@@ -140,34 +138,35 @@ export class WorkflowRunner {
     private extendContext(context: ExecutionContext, block: WorkflowBlock, result: WorkflowBlockResult): ExecutionContext {
         const blockResults = result.value;
         return {
-            workflow: {
-                ...context.workflow,
-                [block.id]: blockResults,
-            },
             blocks: {
                 ...context.blocks,
                 [block.id]: blockResults,
             },
-            lastResult: blockResults.result ?? Object.values(blockResults)[0],
+            lastResult: blockResults.result,
         };
     }
 
     private toExpressionContext(context: ExecutionContext, currentResults: { [key: string]: any }): any {
+        return this.createScopedContext(context, currentResults, currentResults.result ?? context.lastResult);
+    }
+
+    private createScopedContext(
+        context: ExecutionContext,
+        currentResults: { [key: string]: any },
+        resultOverride?: any,
+    ): any {
         return {
-            ...context.workflow,
             ...context.blocks,
             ...currentResults,
             current: currentResults,
-            workflow: context.workflow,
+            workflow: context.blocks,
             blocks: context.blocks,
-            last: currentResults.last,
-            result: currentResults.result ?? context.lastResult,
+            result: resultOverride ?? currentResults.result,
         };
     }
 }
 
 interface ExecutionContext {
-    workflow: Record<string, any>;
     blocks: Record<string, any>;
     lastResult?: any;
 }

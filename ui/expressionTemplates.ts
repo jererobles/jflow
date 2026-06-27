@@ -1,4 +1,5 @@
 import { ExpressionData } from "./types";
+import { generateId } from "./ids";
 
 export const EXPRESSION_LIBRARY: { label: string; icon: string; expressionType: string }[] = [
   { label: "Math", icon: "🧮", expressionType: "Math" },
@@ -8,13 +9,16 @@ export const EXPRESSION_LIBRARY: { label: string; icon: string; expressionType: 
 ];
 
 export function createExpression(type: string, existingExpressions: ExpressionData[] = []): ExpressionData {
-  const nextIndex = existingExpressions.length + 1;
   return {
-    id: `expr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: generateId("expr"),
     name: createExpressionName(type, existingExpressions),
     type,
     parameters: getDefaultParams(type),
   };
+}
+
+export function fallbackExpressionName(type: string, index: number): string {
+  return `${toExpressionNameBase(type)}_${index + 1}`;
 }
 
 export function getDefaultParams(type: string): { id: string; name: string; value: string }[] {
@@ -46,7 +50,7 @@ export function getExpressionMeta(type: string) {
 }
 
 function createExpressionName(type: string, existingExpressions: ExpressionData[]): string {
-  const base = type.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/\s+/g, "_").toLowerCase();
+  const base = toExpressionNameBase(type);
   const taken = new Set(existingExpressions.map((expression) => expression.name));
   let counter = 1;
   let candidate = `${base}_${counter}`;
@@ -55,4 +59,13 @@ function createExpressionName(type: string, existingExpressions: ExpressionData[
     candidate = `${base}_${counter}`;
   }
   return candidate;
+}
+
+function toExpressionNameBase(type: string): string {
+  // Best-effort conversion from display names/types into stable snake_case keys.
+  return type
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/\s+/g, "_")
+    .toLowerCase();
 }

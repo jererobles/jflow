@@ -81,7 +81,7 @@ export class WorkflowExpression {
 
     constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], withResult: WorkflowExpression | null = null) {
         this.id = id;
-        this.name = name || id || 'result';
+        this.name = resolveExpressionName({ id, name });
         this.parameters = {};
         this.withResult = withResult;
         for (let param of parameters) {
@@ -119,18 +119,20 @@ export class WorkflowExpression {
             withResult = WorkflowExpression.fromObject(obj.withResult);
         }
 
+        const expressionName = resolveExpressionName(obj);
+
         // use WorkflowExpressionType to instantiate the correct type
         if (obj.type === WorkflowExpressionType.Math) {
-            return new WorkflowExpressionMath(obj.id, obj.name || obj.id || 'result', parameters, withResult);
+            return new WorkflowExpressionMath(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.ConsoleLog) {
-            return new WorkflowExpressionConsoleLog(obj.id, obj.name || obj.id || 'result', parameters, withResult);
+            return new WorkflowExpressionConsoleLog(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.Wait) {
-            return new WorkflowExpressionWait(obj.id, obj.name || obj.id || 'result', parameters, withResult);
+            return new WorkflowExpressionWait(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.HTTPRequest) {
-            return new WorkflowExpressionHTTPRequest(obj.id, obj.name || obj.id || 'result', parameters, withResult);
+            return new WorkflowExpressionHTTPRequest(obj.id, expressionName, parameters, withResult);
         }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
@@ -156,7 +158,7 @@ export class WorkflowExpressionMath extends WorkflowExpression {
         if (this.withResult) {
             result = await this.withResult.compute(result);
         }
-        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -180,7 +182,7 @@ export class WorkflowExpressionConsoleLog extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         console.log(result);
-        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -204,7 +206,7 @@ export class WorkflowExpressionWait extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         await new Promise(resolve => setTimeout(resolve, result * 1000));
-        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -235,7 +237,7 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
         } else {
             result = JSON.stringify(json);
         }
-        return new WorkflowExpressionResult(this.id || this.name, this.name, WorkflowExpressionResultType.String, result.toString());
+        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
     }
 }
 
@@ -251,4 +253,8 @@ export class WorkflowExpressionResult {
         this.type = type;
         this.value = value;
     }
+}
+
+function resolveExpressionName(obj: { id?: string; name?: string; type?: string }): string {
+    return obj.name || obj.id || (obj.type ? String(obj.type).toLowerCase() : '') || 'expression';
 }

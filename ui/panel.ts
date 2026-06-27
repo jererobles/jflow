@@ -2,7 +2,8 @@
 
 import { getState, updateNode, removeNode, subscribe, setState } from "./state";
 import { ExpressionData, ForkBranchData, ForkData, NodeData } from "./types";
-import { EXPRESSION_LIBRARY, createExpression } from "./expressionTemplates";
+import { EXPRESSION_LIBRARY, createExpression, fallbackExpressionName } from "./expressionTemplates";
+import { generateId } from "./ids";
 
 let panelEl: HTMLDivElement;
 let currentNodeId: string | null = null;
@@ -122,7 +123,16 @@ function renderExpression(node: NodeData, expression: ExpressionData, expression
     <div class="jf-expr">
       <div class="jf-card__header">
         <span class="jf-expr__type">${escapeHtml(expression.type)}</span>
-        <button class="jf-btn jf-btn--ghost jf-btn--danger" data-action="remove-expression" data-expression-index="${expressionIndex}">Remove</button>
+        <button
+          class="jf-btn jf-btn--ghost jf-btn--danger"
+          data-action="remove-expression"
+          data-expression-index="${expressionIndex}"
+          aria-label="${node.expressions.length === 1 ? "Cannot remove last expression" : "Remove expression"}"
+          title="${node.expressions.length === 1 ? "A block needs at least one expression" : "Remove expression"}"
+          ${node.expressions.length === 1 ? "disabled" : ""}
+        >
+          Remove
+        </button>
       </div>
       <label class="jf-field">
         <span class="jf-field__label">Result Key</span>
@@ -355,7 +365,7 @@ function handleClick(event: Event) {
         forks: [
           ...node.forks,
           {
-            id: `fork_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            id: generateId("fork"),
             name: `Fork ${node.forks.length + 1}`,
             branches: [createForkBranch()],
           },
@@ -482,7 +492,7 @@ function handleInput(event: Event) {
     const expressionIndex = Number(target.dataset.expressionIndex);
     updateNode(node.id, {
       expressions: node.expressions.map((expression, index) =>
-        index === expressionIndex ? { ...expression, name: target.value.trim() || expression.name } : expression
+        index === expressionIndex ? { ...expression, name: target.value } : expression
       ),
     });
     return;
@@ -539,6 +549,21 @@ function handleChange(event: Event) {
 
   if (target.dataset.field === "id") {
     renameNode(node, target.value.trim());
+    return;
+  }
+
+  if (target.dataset.expressionField === "name") {
+    const expressionIndex = Number(target.dataset.expressionIndex);
+    const nextName = target.value.trim();
+    if (!nextName) {
+      updateNode(node.id, {
+        expressions: node.expressions.map((expression, index) =>
+          index === expressionIndex
+            ? { ...expression, name: fallbackExpressionName(String(expression.type || "expression"), expressionIndex) }
+            : expression
+        ),
+      });
+    }
     return;
   }
 
@@ -672,9 +697,10 @@ function collectUpstreamNodes(nodeId: string): NodeData[] {
   const visited = new Set<string>();
   const queue = [...(nodes.find((node) => node.id === nodeId)?.parentBlocks ?? [])];
   const upstreamNodes: NodeData[] = [];
+  let pointer = 0;
 
-  while (queue.length > 0) {
-    const parentId = queue.shift();
+  while (pointer < queue.length) {
+    const parentId = queue[pointer++];
     if (!parentId || parentId === "workflow" || visited.has(parentId)) continue;
     visited.add(parentId);
 
@@ -740,9 +766,9 @@ function insertBranchReference(statement: any, reference: string): string {
     return JSON.stringify(["==", reference, ""]);
   }
   if (current.includes("$result")) {
-    return current.replace("$result", reference);
+    return current.replace(/(^|[^A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g, (_, prefix: string) => `${prefix}${reference}`);
   }
-  return current;
+  return appendReference(current, reference);
 }
 
 function dedupeIds(ids: string[]): string[] {

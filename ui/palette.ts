@@ -3,6 +3,7 @@
 import { addNode, getState } from "./state";
 import { NodeData } from "./types";
 import { EXPRESSION_LIBRARY, createExpression } from "./expressionTemplates";
+import { generateId } from "./ids";
 
 let paletteEl: HTMLDivElement;
 
@@ -66,7 +67,7 @@ function addBlockFromTemplate(idx: number, position?: { x: number; y: number }) 
   const template = EXPRESSION_LIBRARY[idx];
   if (!template) return;
 
-  const id = `block_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const id = generateId("block");
   const nodes = getState().nodes;
 
   // Auto-position if not specified

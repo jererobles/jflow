@@ -15,6 +15,7 @@ export function renderConnections(
   svg.innerHTML = "";
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const nodeWidth = NODE_WIDTH();
 
   for (const node of nodes) {
     // Parent → child connections
@@ -22,7 +23,7 @@ export function renderConnections(
       if (parentId === "workflow") continue;
       const parent = nodeMap.get(parentId);
       if (!parent) continue;
-      drawConnection(svg, parent, node, "parent", executionStates);
+      drawConnection(svg, parent, node, "parent", executionStates, nodeWidth);
     }
 
     // Fork connections
@@ -30,11 +31,11 @@ export function renderConnections(
       for (const branch of fork.branches) {
         for (const targetId of branch.resultTrueBlocks) {
           const target = nodeMap.get(targetId);
-          if (target) drawConnection(svg, node, target, "true", executionStates);
+          if (target) drawConnection(svg, node, target, "true", executionStates, nodeWidth);
         }
         for (const targetId of branch.resultFalseBlocks) {
           const target = nodeMap.get(targetId);
-          if (target) drawConnection(svg, node, target, "false", executionStates);
+          if (target) drawConnection(svg, node, target, "false", executionStates, nodeWidth);
         }
       }
     }
@@ -46,9 +47,9 @@ function drawConnection(
   from: NodeData,
   to: NodeData,
   type: "parent" | "true" | "false",
-  executionStates: Record<string, NodeExecutionState>
+  executionStates: Record<string, NodeExecutionState>,
+  nodeWidth: number
 ) {
-  const nodeWidth = NODE_WIDTH();
   const fromX = from.position.x + nodeWidth / 2;
   const fromY = from.position.y + NODE_HEIGHT;
   const toX = to.position.x + nodeWidth / 2;

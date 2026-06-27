@@ -20,8 +20,11 @@ export class WorkflowParser {
             let parentBlocks: string[] = blockDefinition.parentBlocks ?? [];
 
             // parse expressions
-            let expressions: WorkflowExpression[] = (blockDefinition.expressions ?? []).map((expressionDefinition: any) =>
-                WorkflowExpression.fromObject(expressionDefinition));
+            let expressions: WorkflowExpression[] = (blockDefinition.expressions ?? []).map((expressionDefinition: any, index: number) =>
+                WorkflowExpression.fromObject({
+                    ...expressionDefinition,
+                    name: expressionDefinition.name || expressionDefinition.id || `${String(expressionDefinition.type || 'expression').toLowerCase()}_${index + 1}`,
+                }));
 
             // parse forks
             let forks: WorkflowFork[] = (blockDefinition.forks ?? []).map((forkDefinition: any) =>
