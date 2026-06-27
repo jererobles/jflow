@@ -5,11 +5,23 @@
 ## Run
 
 ```bash
-git clone git@github.com:jererobles/jflow.git
+git clone https://github.com/jererobles/jflow.git
 cd jflow
 yarn install
-npx ts-node index.ts
+yarn dev
 ```
+
+## Build
+
+```bash
+yarn build
+```
+
+## GitHub Pages
+
+- Every push builds and deploys the app to GitHub Pages.
+- The default branch updates the main site.
+- Pull requests also publish a preview at `pr-preview/pr-<number>/`.
 
 ## To Do
 

@@ -2,9 +2,7 @@
 // A workflow block takes a set of parameters, performs some computation, and returns a set of results.
 // A workflow block computation depends on the type of the workflow block expression.
 // Workflow block expression types: Math, Data, and Control.
-const fetch = require("node-fetch");
-import math = require("mathjs")
-// import math from 'mathjs'
+import { evaluate } from "mathjs";
 
 /**
  * There are 3 WorkflowBlockExpressionTypes: Math, Data, and Control.
@@ -153,7 +151,7 @@ export class WorkflowExpressionMath extends WorkflowExpression {
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.expression is untyped
-        let result = math.evaluate(this.parameters.expression);
+        let result = evaluate(this.parameters.expression);
         if (context) {
             result = this.contextualize(context, result);
         }
@@ -253,4 +251,3 @@ export class WorkflowExpressionResult {
         this.value = value;
     }
 }
-

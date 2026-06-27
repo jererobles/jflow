@@ -2,17 +2,9 @@
 // The workflow runner is responsible for executing a workflow.
 // The workflow runner takes a workflow definition and executes it, instantiating workflow blocks and evaluating workflow expressions.
 
-import { Workflow, WorkflowResult } from ".";
+import { Workflow, WorkflowResult } from "./index";
 import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
-
-import SimpleLogger from "simple-node-logger";
-
-const log = SimpleLogger.createSimpleLogger(
-    {
-        level: "error",
-    }
-);
 
 export enum BlockState {
     NotStarted,
@@ -24,14 +16,12 @@ export enum BlockState {
 export class WorkflowRunner {
     public workflow: Workflow;
     public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
-    private depth: number;
     private state: { [key: string]: BlockState };
 
     private static MAX_DEPTH = 100;
 
     constructor(workflow: Workflow) {
         this.workflow = workflow;
-        this.depth = 0;
         this.state = {};
     }
 
@@ -44,8 +34,8 @@ export class WorkflowRunner {
                 rootBlocks.push(block);
             }
         }
-        const results = await this.executeBlocks(rootBlocks);
-        return new WorkflowResult(this.workflow.id, this.workflow.name, results, new Date(), new Date(), new Date());
+        const results = await Promise.all(rootBlocks.map(block => this.executeBlockTree(block, 0)));
+        return new WorkflowResult(this.workflow.id, this.workflow.name, results.flat(), new Date(), new Date(), new Date());
     }
 
     private setBlockState(block: WorkflowBlock, state: BlockState, result: WorkflowBlockResult | null = null) {
@@ -53,39 +43,29 @@ export class WorkflowRunner {
         if (state === BlockState.Finished && result) {
             this.onBlockFinished(block, result);
         }
-        log.info(`Block "${block.id}" is now ${BlockState[state]}`);
     }
 
-    private async executeBlocks(blocks: WorkflowBlock[]): Promise<WorkflowBlockResult[]> {
-        // return multiple promises, one for each block
-        const promises: Promise<WorkflowBlockResult>[] = [];
-        for (const block of blocks) {
-            const blockResult = this.executeBlock(block);
-            blockResult.then(async (result: WorkflowBlockResult) => {
-                this.setBlockState(block, BlockState.Finished, result);
-                const childBlocks = this.findChildBlocks(block);
-                const forkBlocks = this.evaluateFork(block, result);
-                // limit the depth of the workflow to prevent infinite loops or excessive recursion
-                this.depth++;
-                if (this.depth > WorkflowRunner.MAX_DEPTH) {
-                    throw `Workflow exceeded maximum depth of ${WorkflowRunner.MAX_DEPTH} blocks`;
-                }
-                await this.executeBlocks([...childBlocks, ...forkBlocks]);
-                this.depth--;
-            }).catch(err => {
-                this.setBlockState(block, BlockState.Failed);
-                log.info(`Block "${block.id}" failed: ${err}`);
-            });
-            promises.push(blockResult);
+    private async executeBlockTree(block: WorkflowBlock, depth: number): Promise<WorkflowBlockResult[]> {
+        if (depth > WorkflowRunner.MAX_DEPTH) {
+            throw new Error(`Workflow exceeded maximum depth of ${WorkflowRunner.MAX_DEPTH} blocks`);
         }
-        // Execute all blocks in parallel
-        const results = await Promise.all(promises);
-        return results;
+
+        try {
+            const result = await this.executeBlock(block);
+            this.setBlockState(block, BlockState.Finished, result);
+
+            const nextBlocks = [...this.findChildBlocks(block), ...this.evaluateFork(block, result)];
+            const nestedResults = await Promise.all(nextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1)));
+
+            return [result, ...nestedResults.flat()];
+        } catch (err) {
+            this.setBlockState(block, BlockState.Failed);
+            throw err;
+        }
     }
 
     private async executeBlock(block: WorkflowBlock): Promise<WorkflowBlockResult> {
         this.setBlockState(block, BlockState.Running);
-        log.info(`Executing block "${block.id}", current depth: ${this.depth}`);
         const expressionsResults = await this.evaluateExpressions(block.expressions);
         // Flatten the expressionsResults into a single object with all of the results.name and results.value properties
         const resultsObject: { [key: string]: any } = {};
@@ -106,17 +86,14 @@ export class WorkflowRunner {
         // First, flatten the results into a single object with all of the results.name and results.value properties
         const blocksToExecute: WorkflowBlock[] = [];
         const resultsObject = results.value;
-        log.info(resultsObject)
         // for each fork, evaluate them and return the results
         for (const fork of block.forks) {
-            log.info(`Evaluating fork ${JSON.stringify(fork, null, 2)}`);
             // Evaluate the fork
             const forkResult = fork.evaluate(resultsObject);
             if (forkResult) {
                 // forkResult is an array of block ids
                 // Fork matches one or more blocks, filter through workflow blocks and execute them
                 const matchingBlocks = this.workflow.blocks.filter(b => forkResult.includes(b.id));
-                log.info(`Fork matched ${matchingBlocks.length} blocks`);
                 blocksToExecute.push(...matchingBlocks);
             }
         }
@@ -125,8 +102,6 @@ export class WorkflowRunner {
 
     private findChildBlocks(block: WorkflowBlock): WorkflowBlock[] {
         // Filter through workflow blocks and find all blocks that are children of this block
-        const childBlocks = this.workflow.blocks.filter(b => b.parentBlocks.includes(block.id));
-        log.info(`Found ${childBlocks.length} child blocks`);
-        return childBlocks;
+        return this.workflow.blocks.filter(b => b.parentBlocks.includes(block.id));
     }
 }
