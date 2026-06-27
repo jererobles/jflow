@@ -61,8 +61,8 @@ export class WorkflowRunner {
             const nextContext = this.extendContext(context, block, result);
             // A block can be reachable via both a direct parent edge and a fork
             // branch, so collapse duplicates before recursing further.
-            const nextBlocks = this.dedupeBlocks([...this.findChildBlocks(block), ...this.evaluateFork(block, result, nextContext)]);
-            const nestedResults = await Promise.all(nextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1, nextContext)));
+            const uniqueNextBlocks = this.dedupeBlocks([...this.findChildBlocks(block), ...this.evaluateFork(block, result, nextContext)]);
+            const nestedResults = await Promise.all(uniqueNextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1, nextContext)));
 
             return [result, ...nestedResults.flat()];
         } catch (err) {
@@ -77,13 +77,15 @@ export class WorkflowRunner {
         const resultsObject: { [key: string]: any } = {};
         for (const result of expressionsResults) {
             resultsObject[result.name] = result.value;
+            // Preserve the stored result key while also exposing a normalized
+            // alias for template/fork references that require identifier-safe keys.
             const normalizedResultKey = toReferenceKey(result.name, "expression");
             resultsObject[normalizedResultKey] = result.value;
         }
         // Keep a stable `result` alias for existing forks/samples while letting
         // richer blocks expose additional named expression outputs. Explicit
         // `result` expressions take precedence over this implicit fallback.
-        const lastExpressionResult = expressionsResults[expressionsResults.length - 1];
+        const lastExpressionResult = expressionsResults.length > 0 ? expressionsResults[expressionsResults.length - 1] : null;
         if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
             resultsObject.result = lastExpressionResult.value;
         }

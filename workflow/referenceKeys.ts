@@ -4,6 +4,7 @@ export interface ReferenceSource {
     type?: string;
 }
 
+// Prefix digit-starting keys so they remain valid template/fork identifiers.
 const NUMERIC_REFERENCE_PREFIX = "n_";
 
 export function toReferenceKey(value: string | undefined | null, fallback = "value"): string {

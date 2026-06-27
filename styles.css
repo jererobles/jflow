@@ -125,6 +125,7 @@ button, select, input {
     right: 0.75rem;
     bottom: 0.75rem;
     width: auto;
+    max-height: min(68vh, 560px);
     max-height: min(68dvh, 560px);
     border: 1px solid var(--border);
     border-top: 1px solid var(--border);

@@ -7,22 +7,22 @@ const MOBILE_NODE_MARGIN = 32;
 const MOBILE_NODE_MAX_WIDTH = 180;
 const DESKTOP_NODE_WIDTH = 200;
 
-let cachedNodeWidth =
-  typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT
-    ? Math.min(MOBILE_NODE_MAX_WIDTH, window.innerWidth - MOBILE_NODE_MARGIN)
-    : DESKTOP_NODE_WIDTH;
+let cachedNodeWidth = typeof window !== "undefined" ? calculateNodeWidth(window.innerWidth) : DESKTOP_NODE_WIDTH;
 
 if (typeof window !== "undefined") {
   window.addEventListener("resize", () => {
-    cachedNodeWidth =
-      window.innerWidth <= MOBILE_BREAKPOINT
-        ? Math.min(MOBILE_NODE_MAX_WIDTH, window.innerWidth - MOBILE_NODE_MARGIN)
-        : DESKTOP_NODE_WIDTH;
+    cachedNodeWidth = calculateNodeWidth(window.innerWidth);
   });
 }
 
 const getNodeWidth = () => cachedNodeWidth;
 const NODE_HEIGHT = 80;
+
+function calculateNodeWidth(windowWidth: number): number {
+  return windowWidth <= MOBILE_BREAKPOINT
+    ? Math.min(MOBILE_NODE_MAX_WIDTH, windowWidth - MOBILE_NODE_MARGIN)
+    : DESKTOP_NODE_WIDTH;
+}
 
 export function renderConnections(
   svg: SVGSVGElement,
