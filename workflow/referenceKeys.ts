@@ -53,6 +53,7 @@ export function createBlockReferenceLookup<T extends { id: string; name?: string
 function normalizeReferenceValue(value: string | undefined | null): string {
     const normalized = String(value ?? "")
         .trim()
+        // Convert camelCase/PascalCase names into snake_case reference tokens.
         .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
         .replace(/[^A-Za-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "")
@@ -62,5 +63,6 @@ function normalizeReferenceValue(value: string | undefined | null): string {
         return "";
     }
 
+    // Prefix digit-starting names so they remain valid reference identifiers.
     return /^\d/.test(normalized) ? `n_${normalized}` : normalized;
 }

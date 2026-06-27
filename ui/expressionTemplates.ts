@@ -53,5 +53,5 @@ export function getExpressionMeta(type: string) {
 function createExpressionName(type: string, existingExpressions: ExpressionData[]): string {
   const taken = new Set(existingExpressions.map((expression) => expression.name));
   const base = resolveExpressionReferenceKey({ type }, []);
-  return ensureUniqueReferenceKey(`${base}_1`, taken);
+  return ensureUniqueReferenceKey(base, taken);
 }

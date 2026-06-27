@@ -2,8 +2,16 @@
 
 import { NodeData, NodeExecutionState } from "./types";
 
-const NODE_WIDTH = () =>
+let cachedNodeWidth =
   typeof window !== "undefined" && window.innerWidth <= 768 ? Math.min(180, window.innerWidth - 32) : 200;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    cachedNodeWidth = window.innerWidth <= 768 ? Math.min(180, window.innerWidth - 32) : 200;
+  });
+}
+
+const NODE_WIDTH = () => cachedNodeWidth;
 const NODE_HEIGHT = 80;
 
 export function renderConnections(

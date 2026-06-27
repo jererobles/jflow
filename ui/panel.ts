@@ -686,6 +686,8 @@ function rewriteReferenceText(
   let nextValue = value;
 
   for (const change of blockChanges) {
+    // `{{...}}` references are template interpolations inside expression inputs,
+    // while `$...` references are fork tokens evaluated by the branching engine.
     nextValue = replaceAll(nextValue, `{{blocks.${change.previous}.`, `{{blocks.${change.next}.`);
     nextValue = nextValue.replace(new RegExp(`\\$blocks\\.${escapeRegex(change.previous)}\\.`, "g"), `$blocks.${change.next}.`);
     nextValue = replaceAll(nextValue, `{{${change.previous}.`, `{{${change.next}.`);
@@ -832,7 +834,7 @@ function collectUpstreamNodes(nodeId: string): NodeData[] {
   let pointer = 0;
 
   // Use a manual pointer so newly discovered parents can be appended in-place
-  // without reallocating the queue on every breadth-first traversal step.
+  // as the breadth-first search uncovers more ancestors.
   while (pointer < queue.length) {
     const parentId = queue[pointer++];
     if (!parentId || parentId === "workflow" || visited.has(parentId)) continue;
@@ -912,6 +914,7 @@ function replaceAll(value: string, search: string, replacement: string): string 
 }
 
 function escapeRegex(value: string): string {
+  // Escape user-facing keys before building dynamic RegExp objects.
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 

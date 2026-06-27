@@ -141,7 +141,7 @@ export class WorkflowExpression {
 
     protected createResult(type: WorkflowExpressionResultType, value: any): WorkflowExpressionResult {
         const resultKey = this.getResultKey();
-        return new WorkflowExpressionResult(this.id || resultKey, resultKey, type, value?.toString?.() ?? String(value));
+        return new WorkflowExpressionResult(this.id || resultKey, resultKey, type, stringifyResultValue(value));
     }
 
     protected getResultKey(): string {
@@ -267,4 +267,20 @@ export class WorkflowExpressionResult {
 
 function resolveExpressionName(obj: { id?: string; name?: string; type?: string }): string {
     return toReferenceKey(obj.name || obj.id || obj.type || "expression", "expression");
+}
+
+function stringifyResultValue(value: any): string {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (value != null && typeof value === "object") {
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return String(value);
+        }
+    }
+
+    return String(value);
 }

@@ -75,11 +75,12 @@ export class WorkflowRunner {
         const resultsObject: { [key: string]: any } = {};
         for (const result of expressionsResults) {
             resultsObject[result.name] = result.value;
-            const normalizedResultKey = toReferenceKey(result.name, result.id || "expression");
+            const normalizedResultKey = toReferenceKey(result.name, "expression");
             resultsObject[normalizedResultKey] = result.value;
         }
         // Keep a stable `result` alias for existing forks/samples while letting
-        // richer blocks expose additional named expression outputs.
+        // richer blocks expose additional named expression outputs. The extra
+        // guard avoids clobbering an explicit expression named `result`.
         const lastExpressionResult = expressionsResults[expressionsResults.length - 1];
         if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
             resultsObject.result = lastExpressionResult.value;
@@ -95,7 +96,7 @@ export class WorkflowRunner {
             const result = await expression.compute(scopedContext);
             results.push(result);
             currentResults[result.name] = result.value;
-            currentResults[toReferenceKey(result.name, result.id || "expression")] = result.value;
+            currentResults[toReferenceKey(result.name, "expression")] = result.value;
             // Keep `result` pointed at the latest expression output so later
             // expressions can reference the most recent value with {{result}}.
             currentResults.result = result.value;
