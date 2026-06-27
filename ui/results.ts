@@ -12,21 +12,21 @@ export function initResults(container: HTMLElement) {
   resultsEl.innerHTML = renderResults({});
   container.appendChild(resultsEl);
 
+  // Single delegated click handler for toggle
+  resultsEl.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest(".jf-collapsible__toggle")) {
+      resultsEl.classList.toggle("jf-collapsible--collapsed");
+      const btn = resultsEl.querySelector(".jf-collapsible__toggle")!;
+      btn.textContent = resultsEl.classList.contains("jf-collapsible--collapsed") ? "▸" : "▾";
+    }
+  });
+
   subscribe(() => {
     const { executionStates } = getState();
     if (executionStates !== lastExecutionStates) {
       lastExecutionStates = executionStates;
       resultsEl.innerHTML = renderResults(executionStates);
-      bindToggle();
     }
-  });
-
-  bindToggle();
-}
-
-function bindToggle() {
-  resultsEl.querySelector(".jf-collapsible__toggle")?.addEventListener("click", () => {
-    resultsEl.classList.toggle("jf-collapsible--collapsed");
   });
 }
 
@@ -34,7 +34,8 @@ function renderResults(executionStates: Record<string, NodeExecutionState>): str
   const entries = Object.entries(executionStates);
   const completedEntries = entries.filter(([, s]) => s.state === "success" || s.state === "failed");
 
-  const headerIcon = resultsEl?.classList.contains("jf-collapsible--collapsed") ? "▸" : "▾";
+  const isCollapsed = resultsEl?.classList.contains("jf-collapsible--collapsed");
+  const headerIcon = isCollapsed ? "▸" : "▾";
 
   let body: string;
   if (completedEntries.length === 0) {

@@ -12,6 +12,15 @@ export function initPanel(container: HTMLElement) {
   panelEl.innerHTML = renderPlaceholder();
   container.appendChild(panelEl);
 
+  // Single delegated click handler for toggle
+  panelEl.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest(".jf-collapsible__toggle")) {
+      panelEl.classList.toggle("jf-collapsible--collapsed");
+      const btn = panelEl.querySelector(".jf-collapsible__toggle")!;
+      btn.textContent = panelEl.classList.contains("jf-collapsible--collapsed") ? "▸" : "▾";
+    }
+  });
+
   subscribe(() => {
     const { selectedNodeId, nodes } = getState();
     if (selectedNodeId !== currentNodeId) {
@@ -25,7 +34,6 @@ function renderPanel(node: NodeData | null) {
   if (!node) {
     panelEl.innerHTML = renderPlaceholder();
     panelEl.classList.remove("jf-panel--open");
-    bindPanelToggle();
     return;
   }
 
@@ -89,8 +97,6 @@ function renderPanel(node: NodeData | null) {
   `;
 
   // Event bindings
-  bindPanelToggle();
-
   panelEl.querySelector(".jf-panel__close")?.addEventListener("click", () => {
     setState({ selectedNodeId: null });
   });
@@ -165,14 +171,6 @@ function renderPlaceholder(): string {
       <div class="jf-panel__placeholder">Select a node to edit its properties</div>
     </div>
   `;
-}
-
-function bindPanelToggle() {
-  panelEl.querySelector(".jf-collapsible__toggle")?.addEventListener("click", () => {
-    panelEl.classList.toggle("jf-collapsible--collapsed");
-    const btn = panelEl.querySelector(".jf-collapsible__toggle")!;
-    btn.textContent = panelEl.classList.contains("jf-collapsible--collapsed") ? "▸" : "▾";
-  });
 }
 
 function escapeAttr(s: string): string {
