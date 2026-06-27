@@ -4,7 +4,7 @@ import YAML from "yaml";
 import { getState, setState, setExecutionState, clearExecutionStates } from "./state";
 import { serialize } from "./serializer";
 import { WorkflowParser } from "../workflow/parser";
-import { WorkflowRunner } from "../workflow/runner";
+import { WorkflowRunner, BlockState } from "../workflow/runner";
 
 export async function runWorkflow() {
   const state = getState();
@@ -25,9 +25,6 @@ export async function runWorkflow() {
     const workflow = WorkflowParser.parse(def);
     const runner = new WorkflowRunner(workflow);
 
-    // Hook into the runner to get real-time block state changes
-    const originalRun = runner.run.bind(runner);
-
     // Mark blocks as running when they start
     runner.onBlockFinished = (block, result) => {
       setExecutionState(block.id, {
@@ -37,16 +34,14 @@ export async function runWorkflow() {
       });
     };
 
-    // Patch: mark blocks running by intercepting the state
+    // Patch: mark blocks running by intercepting the internal state setter
     const origSetState = (runner as any).setBlockState;
     if (origSetState) {
-      (runner as any).setBlockState = function (block: any, blockState: any, result: any) {
+      (runner as any).setBlockState = function (block: any, blockState: BlockState, result: any) {
         origSetState.call(runner, block, blockState, result);
-        if (blockState === 1) {
-          // Running
+        if (blockState === BlockState.Running) {
           setExecutionState(block.id, { state: "running", startedAt: Date.now() });
-        } else if (blockState === 3) {
-          // Failed
+        } else if (blockState === BlockState.Failed) {
           setExecutionState(block.id, { state: "failed", finishedAt: Date.now() });
         }
       };
