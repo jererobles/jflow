@@ -91,7 +91,7 @@ function bindPanEvents(container: HTMLDivElement) {
     }
     if (dragNodeId) {
       dragNodeId = null;
-      if (dragPointerId != null && container.hasPointerCapture(dragPointerId)) {
+      if (dragPointerId !== null && container.hasPointerCapture(dragPointerId)) {
         container.releasePointerCapture(dragPointerId);
       }
       dragPointerId = null;

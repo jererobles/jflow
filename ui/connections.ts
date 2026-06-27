@@ -2,16 +2,26 @@
 
 import { NodeData, NodeExecutionState } from "./types";
 
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_NODE_MARGIN = 32;
+const MOBILE_NODE_MAX_WIDTH = 180;
+const DESKTOP_NODE_WIDTH = 200;
+
 let cachedNodeWidth =
-  typeof window !== "undefined" && window.innerWidth <= 768 ? Math.min(180, window.innerWidth - 32) : 200;
+  typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT
+    ? Math.min(MOBILE_NODE_MAX_WIDTH, window.innerWidth - MOBILE_NODE_MARGIN)
+    : DESKTOP_NODE_WIDTH;
 
 if (typeof window !== "undefined") {
   window.addEventListener("resize", () => {
-    cachedNodeWidth = window.innerWidth <= 768 ? Math.min(180, window.innerWidth - 32) : 200;
+    cachedNodeWidth =
+      window.innerWidth <= MOBILE_BREAKPOINT
+        ? Math.min(MOBILE_NODE_MAX_WIDTH, window.innerWidth - MOBILE_NODE_MARGIN)
+        : DESKTOP_NODE_WIDTH;
   });
 }
 
-const NODE_WIDTH = () => cachedNodeWidth;
+const getNodeWidth = () => cachedNodeWidth;
 const NODE_HEIGHT = 80;
 
 export function renderConnections(
@@ -23,7 +33,7 @@ export function renderConnections(
   svg.innerHTML = "";
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const nodeWidth = NODE_WIDTH();
+  const nodeWidth = getNodeWidth();
 
   for (const node of nodes) {
     // Parent → child connections

@@ -59,6 +59,8 @@ export class WorkflowRunner {
             this.setBlockState(block, BlockState.Finished, result);
 
             const nextContext = this.extendContext(context, block, result);
+            // A block can be reachable via both a direct parent edge and a fork
+            // branch, so collapse duplicates before recursing further.
             const nextBlocks = this.dedupeBlocks([...this.findChildBlocks(block), ...this.evaluateFork(block, result, nextContext)]);
             const nestedResults = await Promise.all(nextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1, nextContext)));
 
@@ -79,8 +81,8 @@ export class WorkflowRunner {
             resultsObject[normalizedResultKey] = result.value;
         }
         // Keep a stable `result` alias for existing forks/samples while letting
-        // richer blocks expose additional named expression outputs. The extra
-        // guard avoids clobbering an explicit expression named `result`.
+        // richer blocks expose additional named expression outputs. Explicit
+        // `result` expressions take precedence over this implicit fallback.
         const lastExpressionResult = expressionsResults[expressionsResults.length - 1];
         if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
             resultsObject.result = lastExpressionResult.value;

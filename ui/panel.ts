@@ -8,6 +8,7 @@ import { createBlockReferenceLookup, ensureUniqueReferenceKey, resolveExpression
 
 let panelEl: HTMLDivElement;
 let currentNodeId: string | null = null;
+const STANDALONE_RESULT_TOKEN = /(^|[^A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g;
 
 export function initPanel(container: HTMLElement) {
   panelEl = document.createElement("div");
@@ -688,40 +689,40 @@ function rewriteReferenceText(
   for (const change of blockChanges) {
     // `{{...}}` references are template interpolations inside expression inputs,
     // while `$...` references are fork tokens evaluated by the branching engine.
+    const blockForkPattern = new RegExp(`\\$blocks\\.${escapeRegex(change.previous)}\\.`, "g");
+    const legacyBlockForkPattern = new RegExp(`\\$${escapeRegex(change.previous)}\\.`, "g");
     nextValue = replaceAll(nextValue, `{{blocks.${change.previous}.`, `{{blocks.${change.next}.`);
-    nextValue = nextValue.replace(new RegExp(`\\$blocks\\.${escapeRegex(change.previous)}\\.`, "g"), `$blocks.${change.next}.`);
+    nextValue = nextValue.replace(blockForkPattern, `$blocks.${change.next}.`);
     nextValue = replaceAll(nextValue, `{{${change.previous}.`, `{{${change.next}.`);
-    nextValue = nextValue.replace(new RegExp(`\\$${escapeRegex(change.previous)}\\.`, "g"), `$${change.next}.`);
+    nextValue = nextValue.replace(legacyBlockForkPattern, `$${change.next}.`);
   }
 
   for (const change of expressionChanges) {
+    const currentForkPattern = new RegExp(`\\$current\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g");
+    const blockForkPattern = new RegExp(
+      `\\$blocks\\.${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`,
+      "g"
+    );
+    const legacyBlockForkPattern = new RegExp(
+      `\\$${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`,
+      "g"
+    );
+    const legacyCurrentForkPattern = new RegExp(`(^|[^A-Za-z0-9_])\\$${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g");
     nextValue = replaceAll(nextValue, `{{current.${change.previousKey}}}`, `{{current.${change.nextKey}}}`);
     nextValue = replaceAll(nextValue, `{{current.${change.previousKey}.`, `{{current.${change.nextKey}.`);
-    nextValue = nextValue.replace(
-      new RegExp(`\\$current\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
-      `$current.${change.nextKey}`
-    );
+    nextValue = nextValue.replace(currentForkPattern, `$current.${change.nextKey}`);
 
     nextValue = replaceAll(nextValue, `{{blocks.${change.previousBlockKey}.${change.previousKey}}}`, `{{blocks.${change.nextBlockKey}.${change.nextKey}}}`);
     nextValue = replaceAll(nextValue, `{{blocks.${change.previousBlockKey}.${change.previousKey}.`, `{{blocks.${change.nextBlockKey}.${change.nextKey}.`);
-    nextValue = nextValue.replace(
-      new RegExp(`\\$blocks\\.${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
-      `$blocks.${change.nextBlockKey}.${change.nextKey}`
-    );
+    nextValue = nextValue.replace(blockForkPattern, `$blocks.${change.nextBlockKey}.${change.nextKey}`);
 
     nextValue = replaceAll(nextValue, `{{${change.previousBlockKey}.${change.previousKey}}}`, `{{${change.nextBlockKey}.${change.nextKey}}}`);
     nextValue = replaceAll(nextValue, `{{${change.previousBlockKey}.${change.previousKey}.`, `{{${change.nextBlockKey}.${change.nextKey}.`);
-    nextValue = nextValue.replace(
-      new RegExp(`\\$${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
-      `$${change.nextBlockKey}.${change.nextKey}`
-    );
+    nextValue = nextValue.replace(legacyBlockForkPattern, `$${change.nextBlockKey}.${change.nextKey}`);
 
     nextValue = replaceAll(nextValue, `{{${change.previousKey}}}`, `{{${change.nextKey}}}`);
     nextValue = replaceAll(nextValue, `{{${change.previousKey}.`, `{{${change.nextKey}.`);
-    nextValue = nextValue.replace(
-      new RegExp(`(^|[^A-Za-z0-9_])\\$${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
-      (_match, prefix: string) => `${prefix}$${change.nextKey}`
-    );
+    nextValue = nextValue.replace(legacyCurrentForkPattern, (_match, prefix: string) => `${prefix}$${change.nextKey}`);
   }
 
   return nextValue;
@@ -904,7 +905,7 @@ function insertBranchReference(statement: any, reference: string): string {
   if (current.includes("$result")) {
     // Replace only standalone `$result` tokens so placeholders like
     // `$result_value` or `$results` keep their original meaning.
-    return current.replace(/(^|[^A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g, (_, prefix: string) => `${prefix}${reference}`);
+    return current.replace(STANDALONE_RESULT_TOKEN, (_, prefix: string) => `${prefix}${reference}`);
   }
   return appendReference(current, reference);
 }

@@ -4,6 +4,8 @@ export interface ReferenceSource {
     type?: string;
 }
 
+const NUMERIC_REFERENCE_PREFIX = "n_";
+
 export function toReferenceKey(value: string | undefined | null, fallback = "value"): string {
     const normalized = normalizeReferenceValue(value);
     if (normalized) {
@@ -64,5 +66,5 @@ function normalizeReferenceValue(value: string | undefined | null): string {
     }
 
     // Prefix digit-starting names so they remain valid reference identifiers.
-    return /^\d/.test(normalized) ? `n_${normalized}` : normalized;
+    return /^\d/.test(normalized) ? `${NUMERIC_REFERENCE_PREFIX}${normalized}` : normalized;
 }
