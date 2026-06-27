@@ -3,6 +3,7 @@
 import { initCanvas } from "./canvas";
 import { initPalette, handleCanvasDrop } from "./palette";
 import { initPanel } from "./panel";
+import { initResults } from "./results";
 import { initToolbar } from "./toolbar";
 import { deserialize } from "./serializer";
 import mathAndForkSample from "../samples/mathAndFork.yml?raw";
@@ -35,6 +36,7 @@ export function mountApp(root: HTMLElement) {
   // Init sidebar components
   initPalette(sidebar);
   initPanel(sidebar);
+  initResults(sidebar);
 
   // Load default sample
   deserialize(mathAndForkSample);

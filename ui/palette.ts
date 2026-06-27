@@ -14,21 +14,33 @@ let paletteEl: HTMLDivElement;
 
 export function initPalette(container: HTMLElement) {
   paletteEl = document.createElement("div");
-  paletteEl.className = "jf-palette";
+  paletteEl.className = "jf-palette jf-collapsible";
 
   paletteEl.innerHTML = `
-    <h3 class="jf-palette__title">Add Block</h3>
-    <div class="jf-palette__items">
-      ${BLOCK_TEMPLATES.map(
-        (t, i) => `
-        <button class="jf-palette__item" data-idx="${i}" draggable="true">
-          <span class="jf-palette__icon">${t.icon}</span>
-          <span class="jf-palette__label">${t.label}</span>
-        </button>
-      `
-      ).join("")}
+    <div class="jf-collapsible__header">
+      <button class="jf-collapsible__toggle" aria-label="Toggle Palette">▾</button>
+      <span class="jf-collapsible__title">Add Block</span>
+    </div>
+    <div class="jf-collapsible__body">
+      <div class="jf-palette__items">
+        ${BLOCK_TEMPLATES.map(
+          (t, i) => `
+          <button class="jf-palette__item" data-idx="${i}" draggable="true">
+            <span class="jf-palette__icon">${t.icon}</span>
+            <span class="jf-palette__label">${t.label}</span>
+          </button>
+        `
+        ).join("")}
+      </div>
     </div>
   `;
+
+  // Toggle collapse
+  paletteEl.querySelector(".jf-collapsible__toggle")?.addEventListener("click", () => {
+    paletteEl.classList.toggle("jf-collapsible--collapsed");
+    const btn = paletteEl.querySelector(".jf-collapsible__toggle")!;
+    btn.textContent = paletteEl.classList.contains("jf-collapsible--collapsed") ? "▸" : "▾";
+  });
 
   // Click to add
   paletteEl.querySelectorAll<HTMLButtonElement>(".jf-palette__item").forEach((btn) => {
