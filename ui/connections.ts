@@ -8,10 +8,17 @@ const MOBILE_NODE_MAX_WIDTH = 180;
 const DESKTOP_NODE_WIDTH = 200;
 
 let cachedNodeWidth = typeof window !== "undefined" ? calculateNodeWidth(window.innerWidth) : DESKTOP_NODE_WIDTH;
+let resizeFrame = 0;
 
 if (typeof window !== "undefined") {
   window.addEventListener("resize", () => {
-    cachedNodeWidth = calculateNodeWidth(window.innerWidth);
+    if (resizeFrame) {
+      cancelAnimationFrame(resizeFrame);
+    }
+    resizeFrame = requestAnimationFrame(() => {
+      cachedNodeWidth = calculateNodeWidth(window.innerWidth);
+      resizeFrame = 0;
+    });
   });
 }
 

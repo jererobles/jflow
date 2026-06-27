@@ -8,7 +8,7 @@ import { createBlockReferenceLookup, ensureUniqueReferenceKey, resolveExpression
 
 let panelEl: HTMLDivElement;
 let currentNodeId: string | null = null;
-const STANDALONE_RESULT_TOKEN = /(^|[^A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g;
+const STANDALONE_RESULT_PATTERN = /(?<![A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g;
 
 export function initPanel(container: HTMLElement) {
   panelEl = document.createElement("div");
@@ -701,7 +701,7 @@ function rewriteReferenceText(
       `\\$${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`,
       "g"
     ),
-    legacyCurrentForkPattern: new RegExp(`(^|[^A-Za-z0-9_])\\$${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
+    legacyCurrentForkPattern: new RegExp(`(?<![A-Za-z0-9_])\\$${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
   }));
 
   for (const change of compiledBlockChanges) {
@@ -740,7 +740,7 @@ function rewriteReferenceText(
 
     nextValue = nextValue.replaceAll(`{{${change.previousKey}}}`, `{{${change.nextKey}}}`);
     nextValue = nextValue.replaceAll(`{{${change.previousKey}.`, `{{${change.nextKey}.`);
-    nextValue = nextValue.replace(change.legacyCurrentForkPattern, (_match, prefix: string) => `${prefix}$${change.nextKey}`);
+    nextValue = nextValue.replace(change.legacyCurrentForkPattern, () => `$${change.nextKey}`);
   }
 
   return nextValue;
@@ -920,12 +920,12 @@ function insertBranchReference(statement: any, reference: string): string {
   if (!current.trim()) {
     return JSON.stringify(["==", reference, ""]);
   }
-  STANDALONE_RESULT_TOKEN.lastIndex = 0;
-  if (STANDALONE_RESULT_TOKEN.test(current)) {
+  STANDALONE_RESULT_PATTERN.lastIndex = 0;
+  if (STANDALONE_RESULT_PATTERN.test(current)) {
     // Replace only standalone `$result` tokens so placeholders like
     // `$result_value` or `$results` keep their original meaning.
-    STANDALONE_RESULT_TOKEN.lastIndex = 0;
-    return current.replace(STANDALONE_RESULT_TOKEN, (_, prefix: string) => `${prefix}${reference}`);
+    STANDALONE_RESULT_PATTERN.lastIndex = 0;
+    return current.replace(STANDALONE_RESULT_PATTERN, () => reference);
   }
   return appendReference(current, reference);
 }

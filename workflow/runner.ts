@@ -85,7 +85,7 @@ export class WorkflowRunner {
         // Keep a stable `result` alias for existing forks/samples while letting
         // richer blocks expose additional named expression outputs. Explicit
         // `result` expressions take precedence over this implicit fallback.
-        const lastExpressionResult = expressionsResults.length > 0 ? expressionsResults[expressionsResults.length - 1] : null;
+        const lastExpressionResult = expressionsResults.at(-1);
         if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
             resultsObject.result = lastExpressionResult.value;
         }

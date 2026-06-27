@@ -163,8 +163,8 @@ export class WorkflowExpressionMath extends WorkflowExpression {
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.expression is untyped
-        const expression = this.contextualize(context, this.parameters.expression);
-        let result = evaluate(expression);
+        const contextualizedExpression = this.contextualize(context, this.parameters.expression);
+        let result = evaluate(contextualizedExpression);
         if (this.withResult) {
             result = await this.withResult.compute(result);
         }
