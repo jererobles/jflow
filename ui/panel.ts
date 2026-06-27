@@ -4,6 +4,7 @@ import { getState, updateNode, removeNode, subscribe, setState } from "./state";
 import { ExpressionData, ForkBranchData, ForkData, NodeData } from "./types";
 import { EXPRESSION_LIBRARY, createExpression, fallbackExpressionName } from "./expressionTemplates";
 import { generateId } from "./ids";
+import { createBlockReferenceLookup, ensureUniqueReferenceKey, resolveExpressionReferenceKey, toReferenceKey } from "../workflow/referenceKeys";
 
 let panelEl: HTMLDivElement;
 let currentNodeId: string | null = null;
@@ -55,10 +56,6 @@ function renderPanel(node: NodeData | null) {
         <label class="jf-field">
           <span class="jf-field__label">Name</span>
           <input class="jf-field__input" type="text" value="${escapeAttr(node.name)}" data-field="name" />
-        </label>
-        <label class="jf-field">
-          <span class="jf-field__label">ID</span>
-          <input class="jf-field__input" type="text" value="${escapeAttr(node.id)}" data-field="id" />
         </label>
         <div class="jf-field">
           <span class="jf-field__label">Parents</span>
@@ -483,21 +480,6 @@ function handleInput(event: Event) {
   const node = getCurrentNode();
   if (!node) return;
 
-  if (target.dataset.field === "name") {
-    updateNode(node.id, { name: target.value });
-    return;
-  }
-
-  if (target.dataset.expressionField === "name") {
-    const expressionIndex = Number(target.dataset.expressionIndex);
-    updateNode(node.id, {
-      expressions: node.expressions.map((expression, index) =>
-        index === expressionIndex ? { ...expression, name: target.value } : expression
-      ),
-    });
-    return;
-  }
-
   if (target.dataset.paramName) {
     const expressionIndex = Number(target.dataset.expressionIndex);
     const paramName = target.dataset.paramName;
@@ -547,23 +529,14 @@ function handleChange(event: Event) {
   const node = getCurrentNode();
   if (!node) return;
 
-  if (target.dataset.field === "id") {
-    renameNode(node, target.value.trim());
+  if (target.dataset.field === "name") {
+    renameNodeDisplay(node, target.value);
     return;
   }
 
   if (target.dataset.expressionField === "name") {
     const expressionIndex = Number(target.dataset.expressionIndex);
-    const nextName = target.value.trim();
-    if (!nextName) {
-      updateNode(node.id, {
-        expressions: node.expressions.map((expression, index) =>
-          index === expressionIndex
-            ? { ...expression, name: fallbackExpressionName(String(expression.type || "expression"), expressionIndex) }
-            : expression
-        ),
-      });
-    }
+    renameExpressionResult(node, expressionIndex, target.value);
     return;
   }
 
@@ -603,31 +576,188 @@ function handleChange(event: Event) {
   }
 }
 
-function renameNode(node: NodeData, newId: string) {
-  if (!newId || newId === node.id) return;
+function renameNodeDisplay(node: NodeData, nextValue: string) {
+  const nextName = nextValue.trim() || node.name;
+  if (nextName === node.name) {
+    updateNode(node.id, { name: nextName });
+    return;
+  }
 
   const { nodes } = getState();
-  if (nodes.some((candidate) => candidate.id === newId)) return;
+  const renamedNodes = nodes.map((candidate) => (candidate.id === node.id ? { ...candidate, name: nextName } : candidate));
+  applyReferenceAwareNodes(nodes, renamedNodes);
+}
 
-  nodes.forEach((candidate) => {
-    if (candidate.id === node.id) return;
+function renameExpressionResult(node: NodeData, expressionIndex: number, nextValue: string) {
+  const expression = node.expressions[expressionIndex];
+  if (!expression) return;
 
-    const parentBlocks = candidate.parentBlocks.map((parentId) => (parentId === node.id ? newId : parentId));
-    const forks = candidate.forks.map((fork) => ({
+  const nextName = getNormalizedExpressionName(node, expressionIndex, nextValue);
+  if (nextName === expression.name) {
+    updateNode(node.id, {
+      expressions: node.expressions.map((candidate, index) =>
+        index === expressionIndex ? { ...candidate, name: nextName } : candidate
+      ),
+    });
+    return;
+  }
+
+  const nextExpressions = node.expressions.map((candidate, index) =>
+    index === expressionIndex ? { ...candidate, name: nextName } : candidate
+  );
+  const { nodes } = getState();
+  const renamedNodes = nodes.map((candidate) =>
+    candidate.id === node.id ? { ...candidate, expressions: nextExpressions } : candidate
+  );
+  applyReferenceAwareNodes(nodes, renamedNodes);
+}
+
+function applyReferenceAwareNodes(previousNodes: NodeData[], nextNodes: NodeData[]) {
+  forcePanelRefresh();
+  setState({ nodes: rewriteReferences(previousNodes, nextNodes) });
+}
+
+function rewriteReferences(previousNodes: NodeData[], nextNodes: NodeData[]): NodeData[] {
+  const previousBlockReferences = createBlockReferenceLookup(previousNodes);
+  const nextBlockReferences = createBlockReferenceLookup(nextNodes);
+  const blockChanges = previousNodes
+    .map((node) => ({
+      previous: previousBlockReferences.get(node.id) ?? node.id,
+      next: nextBlockReferences.get(node.id) ?? node.id,
+    }))
+    .filter((change) => change.previous !== change.next);
+
+  const expressionChanges = previousNodes.flatMap((previousNode) => {
+    const nextNode = nextNodes.find((candidate) => candidate.id === previousNode.id);
+    if (!nextNode) return [];
+
+    const previousExpressions = createExpressionReferenceLookup(previousNode.expressions);
+    const nextExpressions = createExpressionReferenceLookup(nextNode.expressions);
+    const previousBlockKey = previousBlockReferences.get(previousNode.id) ?? previousNode.id;
+    const nextBlockKey = nextBlockReferences.get(previousNode.id) ?? previousNode.id;
+
+    return previousNode.expressions
+      .map((expression) => {
+        const previousKey = previousExpressions.get(expression.id);
+        const nextKey = nextExpressions.get(expression.id);
+        if (!previousKey || !nextKey || previousKey === nextKey) return null;
+        return { previousBlockKey, nextBlockKey, previousKey, nextKey };
+      })
+      .filter((change): change is NonNullable<typeof change> => Boolean(change));
+  });
+
+  if (blockChanges.length === 0 && expressionChanges.length === 0) {
+    return nextNodes;
+  }
+
+  return nextNodes.map((node) => ({
+    ...node,
+    expressions: node.expressions.map((expression) => ({
+      ...expression,
+      parameters: expression.parameters.map((parameter) => ({
+        ...parameter,
+        value: rewriteReferenceText(parameter.value, blockChanges, expressionChanges),
+      })),
+    })),
+    forks: node.forks.map((fork) => ({
       ...fork,
       branches: fork.branches.map((branch) => ({
         ...branch,
-        resultTrueBlocks: branch.resultTrueBlocks.map((targetId) => (targetId === node.id ? newId : targetId)),
-        resultFalseBlocks: branch.resultFalseBlocks.map((targetId) => (targetId === node.id ? newId : targetId)),
+        statement: rewriteBranchStatement(branch.statement, blockChanges, expressionChanges),
       })),
-    }));
+    })),
+  }));
+}
 
-    updateNode(candidate.id, { parentBlocks, forks });
-  });
+function rewriteBranchStatement(
+  statement: any,
+  blockChanges: ReferenceChange[],
+  expressionChanges: ExpressionReferenceChange[]
+) {
+  const rewritten = rewriteReferenceText(stringifyStatement(statement), blockChanges, expressionChanges);
+  return typeof statement === "string" ? rewritten : parseStatementInput(rewritten);
+}
 
-  updateNode(node.id, { id: newId });
-  currentNodeId = newId;
-  setState({ selectedNodeId: newId });
+function rewriteReferenceText(
+  value: string,
+  blockChanges: ReferenceChange[],
+  expressionChanges: ExpressionReferenceChange[]
+): string {
+  let nextValue = value;
+
+  for (const change of blockChanges) {
+    nextValue = replaceAll(nextValue, `{{blocks.${change.previous}.`, `{{blocks.${change.next}.`);
+    nextValue = nextValue.replace(new RegExp(`\\$blocks\\.${escapeRegex(change.previous)}\\.`, "g"), `$blocks.${change.next}.`);
+    nextValue = replaceAll(nextValue, `{{${change.previous}.`, `{{${change.next}.`);
+    nextValue = nextValue.replace(new RegExp(`\\$${escapeRegex(change.previous)}\\.`, "g"), `$${change.next}.`);
+  }
+
+  for (const change of expressionChanges) {
+    nextValue = replaceAll(nextValue, `{{current.${change.previousKey}}}`, `{{current.${change.nextKey}}}`);
+    nextValue = replaceAll(nextValue, `{{current.${change.previousKey}.`, `{{current.${change.nextKey}.`);
+    nextValue = nextValue.replace(
+      new RegExp(`\\$current\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
+      `$current.${change.nextKey}`
+    );
+
+    nextValue = replaceAll(nextValue, `{{blocks.${change.previousBlockKey}.${change.previousKey}}}`, `{{blocks.${change.nextBlockKey}.${change.nextKey}}}`);
+    nextValue = replaceAll(nextValue, `{{blocks.${change.previousBlockKey}.${change.previousKey}.`, `{{blocks.${change.nextBlockKey}.${change.nextKey}.`);
+    nextValue = nextValue.replace(
+      new RegExp(`\\$blocks\\.${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
+      `$blocks.${change.nextBlockKey}.${change.nextKey}`
+    );
+
+    nextValue = replaceAll(nextValue, `{{${change.previousBlockKey}.${change.previousKey}}}`, `{{${change.nextBlockKey}.${change.nextKey}}}`);
+    nextValue = replaceAll(nextValue, `{{${change.previousBlockKey}.${change.previousKey}.`, `{{${change.nextBlockKey}.${change.nextKey}.`);
+    nextValue = nextValue.replace(
+      new RegExp(`\\$${escapeRegex(change.previousBlockKey)}\\.${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
+      `$${change.nextBlockKey}.${change.nextKey}`
+    );
+
+    nextValue = replaceAll(nextValue, `{{${change.previousKey}}}`, `{{${change.nextKey}}}`);
+    nextValue = replaceAll(nextValue, `{{${change.previousKey}.`, `{{${change.nextKey}.`);
+    nextValue = nextValue.replace(
+      new RegExp(`(^|[^A-Za-z0-9_])\\$${escapeRegex(change.previousKey)}(?=\\b|\\.)`, "g"),
+      (_match, prefix: string) => `${prefix}$${change.nextKey}`
+    );
+  }
+
+  return nextValue;
+}
+
+function createExpressionReferenceLookup(expressions: ExpressionData[]): Map<string, string> {
+  const taken = new Set<string>();
+  const lookup = new Map<string, string>();
+
+  for (const expression of expressions) {
+    const key = resolveExpressionReferenceKey(expression, taken);
+    taken.add(key);
+    lookup.set(expression.id, key);
+  }
+
+  return lookup;
+}
+
+function getNormalizedExpressionName(node: NodeData, expressionIndex: number, nextValue: string): string {
+  const expression = node.expressions[expressionIndex];
+  const fallback = fallbackExpressionName(String(expression?.type || "expression"), expressionIndex);
+  const baseKey = toReferenceKey(nextValue.trim() || fallback, fallback);
+  const taken = node.expressions
+    .filter((_, index) => index !== expressionIndex)
+    .map((candidate) => candidate.name);
+  return ensureUniqueReferenceKey(baseKey, taken);
+}
+
+interface ReferenceChange {
+  previous: string;
+  next: string;
+}
+
+interface ExpressionReferenceChange {
+  previousBlockKey: string;
+  nextBlockKey: string;
+  previousKey: string;
+  nextKey: string;
 }
 
 function getCurrentNode(): NodeData | null {
@@ -661,14 +791,15 @@ function getReferenceOptions(node: NodeData, expressionIndex: number) {
   const currentBlockReferences = node.expressions.slice(0, expressionIndex).map((expression) => ({
     label: `current.${expression.name}`,
     template: `{{current.${expression.name}}}`,
-    forkToken: `$${expression.name}`,
+    forkToken: `$current.${expression.name}`,
   }));
 
+  const blockReferenceLookup = createBlockReferenceLookup(getState().nodes);
   const upstreamReferences = collectUpstreamNodes(node.id).flatMap((upstreamNode) =>
     upstreamNode.expressions.map((expression) => ({
-      label: `${upstreamNode.id}.${expression.name}`,
-      template: `{{${upstreamNode.id}.${expression.name}}}`,
-      forkToken: `$${upstreamNode.id}.${expression.name}`,
+      label: `${upstreamNode.name} → ${expression.name}`,
+      template: `{{blocks.${blockReferenceLookup.get(upstreamNode.id)}.${expression.name}}}`,
+      forkToken: `$blocks.${blockReferenceLookup.get(upstreamNode.id)}.${expression.name}`,
     }))
   );
 
@@ -676,17 +807,18 @@ function getReferenceOptions(node: NodeData, expressionIndex: number) {
 }
 
 function getForkReferenceOptions(node: NodeData) {
+  const blockReferenceLookup = createBlockReferenceLookup(getState().nodes);
   return [
     ...node.expressions.map((expression) => ({
       label: `current.${expression.name}`,
       template: `{{current.${expression.name}}}`,
-      forkToken: `$${expression.name}`,
+      forkToken: `$current.${expression.name}`,
     })),
     ...collectUpstreamNodes(node.id).flatMap((upstreamNode) =>
       upstreamNode.expressions.map((expression) => ({
-        label: `${upstreamNode.id}.${expression.name}`,
-        template: `{{${upstreamNode.id}.${expression.name}}}`,
-        forkToken: `$${upstreamNode.id}.${expression.name}`,
+        label: `${upstreamNode.name} → ${expression.name}`,
+        template: `{{blocks.${blockReferenceLookup.get(upstreamNode.id)}.${expression.name}}}`,
+        forkToken: `$blocks.${blockReferenceLookup.get(upstreamNode.id)}.${expression.name}`,
       }))
     ),
   ];
@@ -699,6 +831,8 @@ function collectUpstreamNodes(nodeId: string): NodeData[] {
   const upstreamNodes: NodeData[] = [];
   let pointer = 0;
 
+  // Use a manual pointer so newly discovered parents can be appended in-place
+  // without reallocating the queue on every breadth-first traversal step.
   while (pointer < queue.length) {
     const parentId = queue[pointer++];
     if (!parentId || parentId === "workflow" || visited.has(parentId)) continue;
@@ -766,9 +900,19 @@ function insertBranchReference(statement: any, reference: string): string {
     return JSON.stringify(["==", reference, ""]);
   }
   if (current.includes("$result")) {
+    // Replace only standalone `$result` tokens so placeholders like
+    // `$result_value` or `$results` keep their original meaning.
     return current.replace(/(^|[^A-Za-z0-9_])\$result(?=[^A-Za-z0-9_]|$)/g, (_, prefix: string) => `${prefix}${reference}`);
   }
   return appendReference(current, reference);
+}
+
+function replaceAll(value: string, search: string, replacement: string): string {
+  return value.split(search).join(replacement);
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function dedupeIds(ids: string[]): string[] {

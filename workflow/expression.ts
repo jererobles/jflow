@@ -3,6 +3,7 @@
 // A workflow block computation depends on the type of the workflow block expression.
 // Workflow block expression types: Math, Data, and Control.
 import { evaluate } from "mathjs";
+import { toReferenceKey } from "./referenceKeys";
 
 /**
  * There are 3 WorkflowBlockExpressionTypes: Math, Data, and Control.
@@ -137,6 +138,15 @@ export class WorkflowExpression {
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
     }
+
+    protected createResult(type: WorkflowExpressionResultType, value: any): WorkflowExpressionResult {
+        const resultKey = this.getResultKey();
+        return new WorkflowExpressionResult(this.id || resultKey, resultKey, type, value?.toString?.() ?? String(value));
+    }
+
+    protected getResultKey(): string {
+        return toReferenceKey(this.name || this.id || "expression", "expression");
+    }
 }
 
 // WorkflowBlockExpressionMath is a workflow block expression that performs a mathematical operation.
@@ -158,7 +168,7 @@ export class WorkflowExpressionMath extends WorkflowExpression {
         if (this.withResult) {
             result = await this.withResult.compute(result);
         }
-        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -182,7 +192,7 @@ export class WorkflowExpressionConsoleLog extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         console.log(result);
-        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -206,7 +216,7 @@ export class WorkflowExpressionWait extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         await new Promise(resolve => setTimeout(resolve, result * 1000));
-        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -237,7 +247,7 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
         } else {
             result = JSON.stringify(json);
         }
-        return new WorkflowExpressionResult(this.id || this.name || 'expression', this.name || this.id || 'expression', WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -256,5 +266,5 @@ export class WorkflowExpressionResult {
 }
 
 function resolveExpressionName(obj: { id?: string; name?: string; type?: string }): string {
-    return obj.name || obj.id || (obj.type ? String(obj.type).toLowerCase() : '') || 'expression';
+    return toReferenceKey(obj.name || obj.id || obj.type || "expression", "expression");
 }

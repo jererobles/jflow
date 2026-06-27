@@ -5,6 +5,7 @@
 import { Workflow, WorkflowResult } from "./index";
 import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
+import { createBlockReferenceLookup, toReferenceKey } from "./referenceKeys";
 
 export enum BlockState {
     NotStarted,
@@ -17,12 +18,14 @@ export class WorkflowRunner {
     public workflow: Workflow;
     public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
     private state: { [key: string]: BlockState };
+    private readonly blockReferenceKeys: Map<string, string>;
 
     private static MAX_DEPTH = 100;
 
     constructor(workflow: Workflow) {
         this.workflow = workflow;
         this.state = {};
+        this.blockReferenceKeys = createBlockReferenceLookup(workflow.blocks);
     }
 
     public async run(): Promise<WorkflowResult> {
@@ -69,10 +72,11 @@ export class WorkflowRunner {
     private async executeBlock(block: WorkflowBlock, context: ExecutionContext): Promise<WorkflowBlockResult> {
         this.setBlockState(block, BlockState.Running);
         const expressionsResults = await this.evaluateExpressions(block.expressions, context);
-        // Flatten the expressionsResults into a single object with all of the results.name and results.value properties
         const resultsObject: { [key: string]: any } = {};
         for (const result of expressionsResults) {
             resultsObject[result.name] = result.value;
+            const normalizedResultKey = toReferenceKey(result.name, result.id || "expression");
+            resultsObject[normalizedResultKey] = result.value;
         }
         // Keep a stable `result` alias for existing forks/samples while letting
         // richer blocks expose additional named expression outputs.
@@ -91,6 +95,7 @@ export class WorkflowRunner {
             const result = await expression.compute(scopedContext);
             results.push(result);
             currentResults[result.name] = result.value;
+            currentResults[toReferenceKey(result.name, result.id || "expression")] = result.value;
             // Keep `result` pointed at the latest expression output so later
             // expressions can reference the most recent value with {{result}}.
             currentResults.result = result.value;
@@ -98,9 +103,9 @@ export class WorkflowRunner {
         return results;
     }
 
-    private evaluateFork(block: WorkflowBlock, results: WorkflowBlockResult, context: ExecutionContext): WorkflowBlock[] {
+    private evaluateFork(block: WorkflowBlock, blockResult: WorkflowBlockResult, context: ExecutionContext): WorkflowBlock[] {
         const blocksToExecute: WorkflowBlock[] = [];
-        const resultsObject = this.createScopedContext(context, results.value);
+        const resultsObject = this.createScopedContext(context, blockResult.value);
         // for each fork, evaluate them and return the results
         for (const fork of block.forks) {
             // Evaluate the fork
@@ -137,10 +142,12 @@ export class WorkflowRunner {
 
     private extendContext(context: ExecutionContext, block: WorkflowBlock, result: WorkflowBlockResult): ExecutionContext {
         const blockResults = result.value;
+        const blockReferenceKey = this.blockReferenceKeys.get(block.id) ?? block.id;
         return {
             blocks: {
                 ...context.blocks,
                 [block.id]: blockResults,
+                [blockReferenceKey]: blockResults,
             },
             lastResult: blockResults.result,
         };
