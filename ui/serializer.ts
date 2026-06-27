@@ -3,6 +3,7 @@
 import YAML from "yaml";
 import { getState, setState } from "./state";
 import { NodeData, ExpressionData, ForkData } from "./types";
+import { resolveExpressionReferenceKey } from "../workflow/referenceKeys";
 
 export function serialize(): string {
   const { nodes, workflowId, workflowName } = getState();
@@ -12,6 +13,7 @@ export function serialize(): string {
     name: node.name,
     expressions: node.expressions.map((expr) => ({
       id: expr.id,
+      name: expr.name,
       type: expr.type,
       parameters: expr.parameters.map((p) => ({
         id: p.id,
@@ -45,15 +47,26 @@ export function deserialize(yamlStr: string) {
   if (!def) return;
 
   const nodes: NodeData[] = (def.blocks ?? []).map((block: any, index: number) => {
-    const expressions: ExpressionData[] = (block.expressions ?? []).map((expr: any) => ({
-      id: expr.id || `expr_${Math.random().toString(36).slice(2, 6)}`,
-      type: expr.type,
-      parameters: (expr.parameters ?? []).map((p: any) => ({
-        id: p.id || "",
-        name: p.name,
-        value: p.value ?? p.defaultValue ?? "",
-      })),
-    }));
+    const takenExpressionNames = new Set<string>();
+    const expressions: ExpressionData[] = (block.expressions ?? []).map((expr: any) => {
+      const id = expr.id || `expr_${Math.random().toString(36).slice(2, 6)}`;
+      const name = resolveExpressionReferenceKey(
+        { id, name: expr.name, type: expr.type },
+        takenExpressionNames
+      );
+      takenExpressionNames.add(name);
+
+      return {
+        id,
+        name,
+        type: expr.type,
+        parameters: (expr.parameters ?? []).map((p: any) => ({
+          id: p.id || "",
+          name: p.name,
+          value: p.value ?? p.defaultValue ?? "",
+        })),
+      };
+    });
 
     const forks: ForkData[] = (block.forks ?? []).map((fork: any) => ({
       id: fork.id || `fork_${Math.random().toString(36).slice(2, 6)}`,

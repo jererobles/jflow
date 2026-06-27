@@ -5,6 +5,7 @@
 import { Workflow, WorkflowResult } from "./index";
 import { WorkflowBlockResult, WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionResult } from "./expression";
+import { createBlockReferenceLookup, toReferenceKey } from "./referenceKeys";
 
 export enum BlockState {
     NotStarted,
@@ -17,12 +18,14 @@ export class WorkflowRunner {
     public workflow: Workflow;
     public onBlockFinished: (block: WorkflowBlock, result: WorkflowBlockResult) => void = (block: WorkflowBlock, result: WorkflowBlockResult) => { };
     private state: { [key: string]: BlockState };
+    private readonly blockReferenceKeys: Map<string, string>;
 
     private static MAX_DEPTH = 100;
 
     constructor(workflow: Workflow) {
         this.workflow = workflow;
         this.state = {};
+        this.blockReferenceKeys = createBlockReferenceLookup(workflow.blocks);
     }
 
     public async run(): Promise<WorkflowResult> {
@@ -34,7 +37,8 @@ export class WorkflowRunner {
                 rootBlocks.push(block);
             }
         }
-        const results = await Promise.all(rootBlocks.map(block => this.executeBlockTree(block, 0)));
+        const baseContext = this.createContext();
+        const results = await Promise.all(rootBlocks.map(block => this.executeBlockTree(block, 0, baseContext)));
         return new WorkflowResult(this.workflow.id, this.workflow.name, results.flat(), new Date(), new Date(), new Date());
     }
 
@@ -45,17 +49,20 @@ export class WorkflowRunner {
         }
     }
 
-    private async executeBlockTree(block: WorkflowBlock, depth: number): Promise<WorkflowBlockResult[]> {
+    private async executeBlockTree(block: WorkflowBlock, depth: number, context: ExecutionContext): Promise<WorkflowBlockResult[]> {
         if (depth > WorkflowRunner.MAX_DEPTH) {
             throw new Error(`Workflow exceeded maximum depth of ${WorkflowRunner.MAX_DEPTH} blocks`);
         }
 
         try {
-            const result = await this.executeBlock(block);
+            const result = await this.executeBlock(block, context);
             this.setBlockState(block, BlockState.Finished, result);
 
-            const nextBlocks = [...this.findChildBlocks(block), ...this.evaluateFork(block, result)];
-            const nestedResults = await Promise.all(nextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1)));
+            const nextContext = this.extendContext(context, block, result);
+            // A block can be reachable via both a direct parent edge and a fork
+            // branch, so collapse duplicates before recursing further.
+            const uniqueNextBlocks = this.dedupeBlocks([...this.findChildBlocks(block), ...this.evaluateFork(block, result, nextContext)]);
+            const nestedResults = await Promise.all(uniqueNextBlocks.map(nextBlock => this.executeBlockTree(nextBlock, depth + 1, nextContext)));
 
             return [result, ...nestedResults.flat()];
         } catch (err) {
@@ -64,28 +71,46 @@ export class WorkflowRunner {
         }
     }
 
-    private async executeBlock(block: WorkflowBlock): Promise<WorkflowBlockResult> {
+    private async executeBlock(block: WorkflowBlock, context: ExecutionContext): Promise<WorkflowBlockResult> {
         this.setBlockState(block, BlockState.Running);
-        const expressionsResults = await this.evaluateExpressions(block.expressions);
-        // Flatten the expressionsResults into a single object with all of the results.name and results.value properties
+        const expressionsResults = await this.evaluateExpressions(block.expressions, context);
         const resultsObject: { [key: string]: any } = {};
         for (const result of expressionsResults) {
             resultsObject[result.name] = result.value;
+            // Preserve the stored result key while also exposing a normalized
+            // alias for template/fork references that require identifier-safe keys.
+            const normalizedResultKey = toReferenceKey(result.name, "expression");
+            resultsObject[normalizedResultKey] = result.value;
+        }
+        // Keep a stable `result` alias for existing forks/samples while letting
+        // richer blocks expose additional named expression outputs. Explicit
+        // `result` expressions take precedence over this implicit fallback.
+        const lastExpressionResult = expressionsResults.at(-1);
+        if (lastExpressionResult && lastExpressionResult.name !== "result" && !("result" in resultsObject)) {
+            resultsObject.result = lastExpressionResult.value;
         }
         return new WorkflowBlockResult(block.id, block.name, "String", resultsObject);
     }
 
-    private async evaluateExpressions(expressions: WorkflowExpression[]): Promise<WorkflowExpressionResult[]> {
-        // Compute all expressions by calling expression.compute() at the same time and return the results as an array of Promises
-        const results = await Promise.all(expressions.map(e => e.compute()));
+    private async evaluateExpressions(expressions: WorkflowExpression[], context: ExecutionContext): Promise<WorkflowExpressionResult[]> {
+        const results: WorkflowExpressionResult[] = [];
+        const currentResults: { [key: string]: any } = {};
+        for (const expression of expressions) {
+            const scopedContext = this.toExpressionContext(context, currentResults);
+            const result = await expression.compute(scopedContext);
+            results.push(result);
+            currentResults[result.name] = result.value;
+            currentResults[toReferenceKey(result.name, "expression")] = result.value;
+            // Keep `result` pointed at the latest expression output so later
+            // expressions can reference the most recent value with {{result}}.
+            currentResults.result = result.value;
+        }
         return results;
-
     }
 
-    private evaluateFork(block: WorkflowBlock, results: WorkflowBlockResult): WorkflowBlock[] {
-        // First, flatten the results into a single object with all of the results.name and results.value properties
+    private evaluateFork(block: WorkflowBlock, blockResult: WorkflowBlockResult, context: ExecutionContext): WorkflowBlock[] {
         const blocksToExecute: WorkflowBlock[] = [];
-        const resultsObject = results.value;
+        const resultsObject = this.createScopedContext(context, blockResult.value);
         // for each fork, evaluate them and return the results
         for (const fork of block.forks) {
             // Evaluate the fork
@@ -104,4 +129,56 @@ export class WorkflowRunner {
         // Filter through workflow blocks and find all blocks that are children of this block
         return this.workflow.blocks.filter(b => b.parentBlocks.includes(block.id));
     }
+
+    private dedupeBlocks(blocks: WorkflowBlock[]): WorkflowBlock[] {
+        const seen = new Set<string>();
+        return blocks.filter(block => {
+            if (seen.has(block.id)) return false;
+            seen.add(block.id);
+            return true;
+        });
+    }
+
+    private createContext(): ExecutionContext {
+        return {
+            blocks: {},
+        };
+    }
+
+    private extendContext(context: ExecutionContext, block: WorkflowBlock, result: WorkflowBlockResult): ExecutionContext {
+        const blockResults = result.value;
+        const blockReferenceKey = this.blockReferenceKeys.get(block.id) ?? block.id;
+        return {
+            blocks: {
+                ...context.blocks,
+                [block.id]: blockResults,
+                [blockReferenceKey]: blockResults,
+            },
+            lastResult: blockResults.result,
+        };
+    }
+
+    private toExpressionContext(context: ExecutionContext, currentResults: { [key: string]: any }): any {
+        return this.createScopedContext(context, currentResults, currentResults.result ?? context.lastResult);
+    }
+
+    private createScopedContext(
+        context: ExecutionContext,
+        currentResults: { [key: string]: any },
+        resultOverride?: any,
+    ): any {
+        return {
+            ...context.blocks,
+            ...currentResults,
+            current: currentResults,
+            workflow: context.blocks,
+            blocks: context.blocks,
+            result: resultOverride ?? currentResults.result,
+        };
+    }
+}
+
+interface ExecutionContext {
+    blocks: Record<string, any>;
+    lastResult?: any;
 }

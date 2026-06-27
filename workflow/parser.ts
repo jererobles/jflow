@@ -2,6 +2,7 @@ import { Workflow } from "./index";
 import { WorkflowBlock } from "./block";
 import { WorkflowExpression, WorkflowExpressionParameter } from "./expression";
 import { WorkflowFork } from "./fork";
+import { resolveExpressionReferenceKey } from "./referenceKeys";
 
 
 // The Parser class parses a workflow definition and returns a Workflow object.
@@ -20,8 +21,20 @@ export class WorkflowParser {
             let parentBlocks: string[] = blockDefinition.parentBlocks ?? [];
 
             // parse expressions
-            let expressions: WorkflowExpression[] = (blockDefinition.expressions ?? []).map((expressionDefinition: any) =>
-                WorkflowExpression.fromObject(expressionDefinition));
+            const takenExpressionNames = new Set<string>();
+            let expressions: WorkflowExpression[] = (blockDefinition.expressions ?? []).map((expressionDefinition: any) => {
+                const expressionName = resolveExpressionReferenceKey({
+                    id: expressionDefinition.id,
+                    name: expressionDefinition.name,
+                    type: expressionDefinition.type,
+                }, takenExpressionNames);
+                takenExpressionNames.add(expressionName);
+
+                return WorkflowExpression.fromObject({
+                    ...expressionDefinition,
+                    name: expressionName,
+                });
+            });
 
             // parse forks
             let forks: WorkflowFork[] = (blockDefinition.forks ?? []).map((forkDefinition: any) =>

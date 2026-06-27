@@ -2,8 +2,34 @@
 
 import { NodeData, NodeExecutionState } from "./types";
 
-const NODE_WIDTH = 200;
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_NODE_MARGIN = 32;
+const MOBILE_NODE_MAX_WIDTH = 180;
+const DESKTOP_NODE_WIDTH = 200;
+
+let cachedNodeWidth = typeof window !== "undefined" ? calculateNodeWidth(window.innerWidth) : DESKTOP_NODE_WIDTH;
+let resizeFrame = 0;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    if (resizeFrame) {
+      cancelAnimationFrame(resizeFrame);
+    }
+    resizeFrame = requestAnimationFrame(() => {
+      cachedNodeWidth = calculateNodeWidth(window.innerWidth);
+      resizeFrame = 0;
+    });
+  });
+}
+
+const getNodeWidth = () => cachedNodeWidth;
 const NODE_HEIGHT = 80;
+
+function calculateNodeWidth(windowWidth: number): number {
+  return windowWidth <= MOBILE_BREAKPOINT
+    ? Math.min(MOBILE_NODE_MAX_WIDTH, windowWidth - MOBILE_NODE_MARGIN)
+    : DESKTOP_NODE_WIDTH;
+}
 
 export function renderConnections(
   svg: SVGSVGElement,
@@ -14,6 +40,7 @@ export function renderConnections(
   svg.innerHTML = "";
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const nodeWidth = getNodeWidth();
 
   for (const node of nodes) {
     // Parent → child connections
@@ -21,7 +48,7 @@ export function renderConnections(
       if (parentId === "workflow") continue;
       const parent = nodeMap.get(parentId);
       if (!parent) continue;
-      drawConnection(svg, parent, node, "parent", executionStates);
+      drawConnection(svg, parent, node, "parent", executionStates, nodeWidth);
     }
 
     // Fork connections
@@ -29,11 +56,11 @@ export function renderConnections(
       for (const branch of fork.branches) {
         for (const targetId of branch.resultTrueBlocks) {
           const target = nodeMap.get(targetId);
-          if (target) drawConnection(svg, node, target, "true", executionStates);
+          if (target) drawConnection(svg, node, target, "true", executionStates, nodeWidth);
         }
         for (const targetId of branch.resultFalseBlocks) {
           const target = nodeMap.get(targetId);
-          if (target) drawConnection(svg, node, target, "false", executionStates);
+          if (target) drawConnection(svg, node, target, "false", executionStates, nodeWidth);
         }
       }
     }
@@ -45,11 +72,12 @@ function drawConnection(
   from: NodeData,
   to: NodeData,
   type: "parent" | "true" | "false",
-  executionStates: Record<string, NodeExecutionState>
+  executionStates: Record<string, NodeExecutionState>,
+  nodeWidth: number
 ) {
-  const fromX = from.position.x + NODE_WIDTH / 2;
+  const fromX = from.position.x + nodeWidth / 2;
   const fromY = from.position.y + NODE_HEIGHT;
-  const toX = to.position.x + NODE_WIDTH / 2;
+  const toX = to.position.x + nodeWidth / 2;
   const toY = to.position.y;
 
   // Bezier curve

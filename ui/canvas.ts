@@ -19,6 +19,7 @@ let panOffsetStart: Position = { x: 0, y: 0 };
 let dragNodeId: string | null = null;
 let dragStart: Position = { x: 0, y: 0 };
 let dragNodeStart: Position = { x: 0, y: 0 };
+let dragPointerId: number | null = null;
 
 export function initCanvas(container: HTMLDivElement) {
   containerEl = container;
@@ -90,6 +91,10 @@ function bindPanEvents(container: HTMLDivElement) {
     }
     if (dragNodeId) {
       dragNodeId = null;
+      if (dragPointerId !== null) {
+        container.releasePointerCapture(dragPointerId);
+      }
+      dragPointerId = null;
     }
   });
 
@@ -102,12 +107,16 @@ function bindPanEvents(container: HTMLDivElement) {
   }, { passive: false });
 }
 
-export function startNodeDrag(nodeId: string, clientX: number, clientY: number) {
+export function startNodeDrag(nodeId: string, clientX: number, clientY: number, pointerId?: number) {
   const node = getState().nodes.find((n) => n.id === nodeId);
   if (!node) return;
   dragNodeId = nodeId;
   dragStart = { x: clientX, y: clientY };
   dragNodeStart = { ...node.position };
+  if (containerEl && pointerId != null) {
+    dragPointerId = pointerId;
+    containerEl.setPointerCapture(pointerId);
+  }
   setState({ selectedNodeId: nodeId });
 }
 

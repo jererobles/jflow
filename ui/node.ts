@@ -21,7 +21,7 @@ export function createNodeElement(node: NodeData): HTMLElement {
   // Drag handler
   el.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
-    startNodeDrag(node.id, e.clientX, e.clientY);
+    startNodeDrag(node.id, e.clientX, e.clientY, e.pointerId);
   });
 
   // Tap to select

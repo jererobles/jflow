@@ -58,6 +58,14 @@ export function removeNode(id: string) {
       .map((n) => ({
         ...n,
         parentBlocks: n.parentBlocks.filter((p) => p !== id),
+        forks: n.forks.map((fork) => ({
+          ...fork,
+          branches: fork.branches.map((branch) => ({
+            ...branch,
+            resultTrueBlocks: branch.resultTrueBlocks.filter((targetId) => targetId !== id),
+            resultFalseBlocks: branch.resultFalseBlocks.filter((targetId) => targetId !== id),
+          })),
+        })),
       })),
     selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
   };

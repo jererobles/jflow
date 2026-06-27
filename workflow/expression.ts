@@ -3,6 +3,7 @@
 // A workflow block computation depends on the type of the workflow block expression.
 // Workflow block expression types: Math, Data, and Control.
 import { evaluate } from "mathjs";
+import { toReferenceKey } from "./referenceKeys";
 
 /**
  * There are 3 WorkflowBlockExpressionTypes: Math, Data, and Control.
@@ -81,7 +82,7 @@ export class WorkflowExpression {
 
     constructor(id: string, name: string, parameters: WorkflowExpressionParameter[], withResult: WorkflowExpression | null = null) {
         this.id = id;
-        this.name = name;
+        this.name = resolveExpressionName({ id, name });
         this.parameters = {};
         this.withResult = withResult;
         for (let param of parameters) {
@@ -119,21 +120,32 @@ export class WorkflowExpression {
             withResult = WorkflowExpression.fromObject(obj.withResult);
         }
 
+        const expressionName = resolveExpressionName(obj);
+
         // use WorkflowExpressionType to instantiate the correct type
         if (obj.type === WorkflowExpressionType.Math) {
-            return new WorkflowExpressionMath(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionMath(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.ConsoleLog) {
-            return new WorkflowExpressionConsoleLog(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionConsoleLog(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.Wait) {
-            return new WorkflowExpressionWait(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionWait(obj.id, expressionName, parameters, withResult);
         }
         else if (obj.type === WorkflowExpressionType.HTTPRequest) {
-            return new WorkflowExpressionHTTPRequest(obj.id, obj.name, parameters, withResult);
+            return new WorkflowExpressionHTTPRequest(obj.id, expressionName, parameters, withResult);
         }
         throw new Error('Unknown workflow expression type: ' + obj.type);
 
+    }
+
+    protected createResult(type: WorkflowExpressionResultType, value: any): WorkflowExpressionResult {
+        const resultKey = this.getResultKey();
+        return new WorkflowExpressionResult(this.id || resultKey, resultKey, type, stringifyResultValue(value));
+    }
+
+    protected getResultKey(): string {
+        return toReferenceKey(this.name || this.id || "expression", "expression");
     }
 }
 
@@ -151,14 +163,12 @@ export class WorkflowExpressionMath extends WorkflowExpression {
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
         // FIXME: this.parameters.expression is untyped
-        let result = evaluate(this.parameters.expression);
-        if (context) {
-            result = this.contextualize(context, result);
-        }
+        const contextualizedExpression = this.contextualize(context, this.parameters.expression);
+        let result = evaluate(contextualizedExpression);
         if (this.withResult) {
             result = await this.withResult.compute(result);
         }
-        return new WorkflowExpressionResult("result", "result", WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -182,7 +192,7 @@ export class WorkflowExpressionConsoleLog extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         console.log(result);
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -206,7 +216,7 @@ export class WorkflowExpressionWait extends WorkflowExpression {
             result = await this.withResult.compute(result);
         }
         await new Promise(resolve => setTimeout(resolve, result * 1000));
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -221,10 +231,13 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
      * @returns The result of an HTTP request wrapped in a WorkflowExpressionResult.
      */
     public async compute(context: any = {}): Promise<WorkflowExpressionResult> {
-        const { url, method, headers, data } = this.parameters;
+        const url = this.contextualize(context, this.parameters.url);
+        const method = this.contextualize(context, this.parameters.method);
+        const headers = this.parameters.headers ? this.contextualize(context, this.parameters.headers) : undefined;
+        const data = this.parameters.data ? this.contextualize(context, this.parameters.data) : undefined;
         const response = await fetch(url, {
             method: method,
-            headers: headers,
+            headers: headers as any,
             body: data
         });
         const json = await response.json();
@@ -234,7 +247,7 @@ export class WorkflowExpressionHTTPRequest extends WorkflowExpression {
         } else {
             result = JSON.stringify(json);
         }
-        return new WorkflowExpressionResult("", "", WorkflowExpressionResultType.String, result.toString());
+        return this.createResult(WorkflowExpressionResultType.String, result);
     }
 }
 
@@ -250,4 +263,24 @@ export class WorkflowExpressionResult {
         this.type = type;
         this.value = value;
     }
+}
+
+function resolveExpressionName(obj: { id?: string; name?: string; type?: string }): string {
+    return toReferenceKey(obj.name || obj.id || obj.type || "expression", "expression");
+}
+
+function stringifyResultValue(value: any): string {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (value != null && typeof value === "object") {
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return String(value);
+        }
+    }
+
+    return String(value);
 }
